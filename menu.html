@@ -194,7 +194,11 @@
         let SHOP_CONFIG = {}, MENU_DATA = {}, cart = [], userLocation = null, distanceKm = 0;
         let allItems = []; 
         let idleTimer, idleWarningShown = false;
-        const SHOP_SLUG = window.location.pathname.split('/').pop() || 'sosushi';
+        
+        // --- DETECCIÓN DE SLUG PARA GITHUB PAGES ---
+        // Verifica si existe ?slug=xyz en la URL, de lo contrario intenta extraerlo del path
+        const urlParams = new URLSearchParams(window.location.search);
+        const SHOP_SLUG = urlParams.get('slug') || window.location.pathname.split('/').pop() || 'sosushi';
         
         // Variable temporal para el item que se está agregando con opciones
         let pendingItem = null;
