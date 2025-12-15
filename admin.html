@@ -502,8 +502,10 @@
             document.getElementById('stat-visits-count').innerText = stats.visits;
             document.getElementById('stat-orders-count').innerText = stats.orders;
 
-            document.getElementById('sidebar-link-store').href = `${API_URL}/tienda/${SESSION.slug}`;
-            document.getElementById('qr-link-text').innerText = `${API_URL}/tienda/${SESSION.slug}`;
+            // Updated Link to GitHub Pages
+            const storeUrl = `https://iamenu.github.io/menuia/menu.html?slug=${SESSION.slug}`;
+            document.getElementById('sidebar-link-store').href = storeUrl;
+            document.getElementById('qr-link-text').innerText = storeUrl;
 
             // Settings Inputs
             document.getElementById('conf-name').value = c.name || '';
@@ -712,7 +714,7 @@
         
         function renderQR(style) { /* Same logic, container id="qr-print-area" */ 
             const container = document.getElementById('qr-print-area');
-            const url = `${API_URL}/tienda/${SESSION.slug}`;
+            const url = `https://iamenu.github.io/menuia/menu.html?slug=${SESSION.slug}`;
             const name = SESSION.data.config.name;
             container.innerHTML = "";
             const wrapper = document.createElement('div');
