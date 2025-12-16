@@ -146,6 +146,7 @@
                 <div class="flex justify-between items-center mb-1 text-base text-gray-400"><span>Subtotal:</span><span id="cart-subtotal" class="text-white">$0.00</span></div>
                 <div class="flex justify-between items-center mb-1 text-base text-gray-400"><span>Envío:</span><span id="cart-shipping" class="text-white font-bold">--</span></div>
                 <div class="flex justify-between items-center mb-4 text-xl font-bold text-white border-t border-gray-700 pt-2"><span>Total:</span><span id="cart-total" class="text-red-500">$0.00</span></div>
+                
                 <div id="checkout-form" class="hidden space-y-3 mb-4">
                     <input type="text" id="cust-name" placeholder="Nombre" class="w-full bg-gray-700 p-2 rounded text-white">
                     <input type="tel" id="cust-phone" placeholder="Teléfono" class="w-full bg-gray-700 p-2 rounded text-white">
@@ -155,18 +156,32 @@
                         <textarea id="cust-address" placeholder="Dirección" class="w-full bg-gray-800 p-2 text-sm rounded text-white"></textarea>
                     </div>
                     
-                    <!-- SECCIÓN DE PAGO MODIFICADA: SOLO TRANSFERENCIA -->
-                    <div class="mb-2 mt-4">
-                        <p class="text-sm font-bold text-gray-300 mb-2 flex items-center gap-2"><i class="fa-solid fa-money-bill-transfer text-blue-400"></i> Método de Pago:</p>
-                        <div class="text-xs text-blue-200 bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg">
-                            <p class="mb-1 font-bold uppercase tracking-wide">Transferencia Bancaria</p>
-                            <div class="space-y-1 text-gray-300">
-                                <p>Banco: <span id="disp-bank-name" class="font-bold text-white select-all"></span></p>
-                                <p>Cuenta/CLABE: <span id="disp-bank-clabe" class="font-bold text-white select-all"></span></p>
-                            </div>
+                    <!-- SECCIÓN DE PAGO (RESTAURADA) -->
+                    <div class="mt-3 mb-2">
+                        <p class="text-sm font-bold text-gray-300 mb-2">Método de Pago:</p>
+                        <div class="flex gap-2 mb-2">
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="pay" value="transferencia" class="peer sr-only" checked onchange="togglePay()">
+                                <div class="bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-400 border border-transparent rounded p-2 text-center text-xs transition">
+                                    <i class="fa-solid fa-building-columns mb-1 block"></i> Transferencia
+                                </div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="pay" value="efectivo" class="peer sr-only" onchange="togglePay()">
+                                <div class="bg-gray-700 peer-checked:bg-green-600 peer-checked:border-green-400 border border-transparent rounded p-2 text-center text-xs transition">
+                                    <i class="fa-solid fa-money-bill-wave mb-1 block"></i> Efectivo
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div id="pay-trans" class="text-xs text-blue-200 bg-blue-900/20 border border-blue-500/30 p-2 rounded">
+                            <p>Banco: <span id="disp-bank-name" class="font-bold select-all"></span></p>
+                            <p>CLABE: <span id="disp-bank-clabe" class="font-bold select-all"></span></p>
+                        </div>
+                        <div id="pay-cash" class="hidden text-xs text-green-200 bg-green-900/20 border border-green-500/30 p-2 rounded">
+                            <p>Pagas al recibir. Ten cambio listo.</p>
                         </div>
                     </div>
-
                 </div>
                 <button onclick="handleCheckout()" id="checkout-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Enviar Pedido (WhatsApp)</button>
             </div>
@@ -200,21 +215,15 @@
         let allItems = []; 
         let idleTimer, idleWarningShown = false;
         
-        // --- DETECCIÓN DE SLUG PARA GITHUB PAGES ---
-        // Verifica si existe ?slug=xyz en la URL, de lo contrario intenta extraerlo del path
         const urlParams = new URLSearchParams(window.location.search);
         const SHOP_SLUG = urlParams.get('slug') || window.location.pathname.split('/').pop() || 'sosushi';
         
-        // Variable temporal para el item que se está agregando con opciones
         let pendingItem = null;
 
-        // --- CONEXIÓN SOCKET.IO CORREGIDA ---
         socket.on('connect', () => {
-            // Unirse explícitamente a la sala de la tienda
             socket.emit('join-store', SHOP_SLUG);
         });
 
-        // Actualización en tiempo real sin recarga completa
         socket.on('shop-updated', async () => {
             await loadStoreData();
             showToast("Menú actualizado en tiempo real 🔄");
@@ -227,7 +236,6 @@
 
         async function loadStoreData() {
             try {
-                // ADDED: Emit register-visit to make stats work!
                 socket.emit('register-visit', SHOP_SLUG);
 
                 const res = await fetch(`${API_URL}/api/shop/${SHOP_SLUG}`);
@@ -241,7 +249,6 @@
                 });
 
                 applyConfig(); 
-                // Renderizar de nuevo el menú manteniendo el filtro actual si es posible, o resetear a 'all'
                 renderMenu('all');
                 
                 const loader = document.getElementById('app-loader');
@@ -271,11 +278,22 @@
             const badge = document.getElementById('hero-badge');
             
             if(isOpen) {
-                banner.innerText = "¡ENVIOS DISPONIBLES AHORA!"; banner.className += " bg-green-600";
-                badge.innerText = `Envío Gratis < ${SHOP_CONFIG.shipping.freeKm}km`;
+                if (SHOP_CONFIG.highDemand) {
+                    banner.innerText = `⚠️ ALTA DEMANDA - TIEMPO DE ESPERA: ${SHOP_CONFIG.highDemandTime || 'CONSULTAR'} ⚠️`; 
+                    banner.className = "bg-orange-600 text-white text-center py-1 text-xs font-bold tracking-wider uppercase transition-colors duration-300";
+                    badge.innerText = `⏳ Demora: ${SHOP_CONFIG.highDemandTime || 'Alta'}`;
+                    badge.className = "bg-orange-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-orange-900/50 cursor-default";
+                } else {
+                    banner.innerText = "¡ENVIOS DISPONIBLES AHORA!"; 
+                    banner.className = "bg-green-600 text-white text-center py-1 text-xs font-bold tracking-wider uppercase transition-colors duration-300";
+                    badge.innerText = `Envío Gratis < ${SHOP_CONFIG.shipping.freeKm}km`;
+                    badge.className = "inline-block bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg shadow-green-900/50 cursor-default";
+                }
             } else {
-                banner.innerText = "CERRADO"; banner.className += " bg-red-600";
-                badge.innerText = "Restaurante Cerrado"; badge.className = "bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold";
+                banner.innerText = "CERRADO"; 
+                banner.className = "bg-red-600 text-white text-center py-1 text-xs font-bold tracking-wider uppercase transition-colors duration-300";
+                badge.innerText = "Restaurante Cerrado"; 
+                badge.className = "bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg cursor-default";
             }
         }
 
@@ -285,15 +303,13 @@
             container.innerHTML = '';
             let hasResults = false;
 
-            // Si el filtro es "top", creamos una categoría virtual
             if(filter === 'top') {
-                const topItems = [...allItems].sort((a,b) => b.sales - a.sales).slice(0, 6); // Top 6
+                const topItems = [...allItems].sort((a,b) => b.sales - a.sales).slice(0, 6); 
                 if(topItems.length > 0) {
                     hasResults = true;
                     renderSection(container, "🏆 Top Ventas del Mes", topItems);
                 }
             } else {
-                // Renderizado normal por categorías
                 const titles = SHOP_CONFIG.categoryTitles || {};
                 const cats = ['promos', 'especiales', 'clasicos', 'extras'];
                 
@@ -326,7 +342,6 @@
         }
 
         function createCard(item) {
-            // Lógica de Badges
             const isTop = item.sales > 80;
             const isPromo = (item.tags || []).includes('promo') || (item.originalPrice && item.originalPrice > item.price);
             
@@ -334,7 +349,6 @@
             if (isTop) badgesHTML += `<div class="badge-ai top-2 right-2"><i class="fa-solid fa-fire"></i> Top</div>`;
             if (isPromo) badgesHTML += `<div class="badge-offer top-2 left-2">Oferta</div>`;
 
-            // Lógica de Precios (Descuento)
             let priceHTML = '';
             if (item.originalPrice && item.originalPrice > item.price) {
                 priceHTML = `
@@ -346,11 +360,8 @@
                 priceHTML = `<span class="bg-red-600 text-white px-3 py-0.5 rounded-lg font-bold shadow-lg text-lg">$${item.price}</span>`;
             }
 
-            // Lógica de Tienda Abierta/Cerrada
             const h = new Date().getHours();
             const isOpen = h >= SHOP_CONFIG.hours.open && h < SHOP_CONFIG.hours.close;
-            
-            // Safe JSON stringify for attribute (escape quotes)
             const safeItem = JSON.stringify(item).replace(/'/g, "&#39;");
 
             const btnHTML = isOpen 
@@ -396,29 +407,33 @@
             
             const type = (SHOP_CONFIG.businessType || "General").toLowerCase();
             let greeting = "¡Hola! Soy tu asistente virtual.";
+            
+            if (SHOP_CONFIG.highDemand) {
+                greeting = `⚠️ ¡Hola! Aviso importante: Actualmente tenemos mucha demanda. El tiempo de espera estimado es de ${SHOP_CONFIG.highDemandTime || '45min'}. ¿Te gustaría ordenar algo?`;
+            }
+
             let q1 = "¿Qué tanto hambre tienes?";
             let opts1 = [
                 {txt: "Mucha 🦁", act: "rate(['grande','combo'], 5); step2()"},
                 {txt: "Poca 🥗", act: "rate(['ligero','individual'], 5); step2()"}
             ];
 
-            // Personalización según el GIRO
             if(type.includes('sushi')) {
-                greeting = "¡Konnichiwa! 🍣 Soy tu Sensei de Sushi.";
+                if (!SHOP_CONFIG.highDemand) greeting = "¡Konnichiwa! 🍣 Soy tu Sensei de Sushi."; 
                 q1 = "¿Antojo de algo fresco o empanizado?";
                 opts1 = [
                     {txt: "Empanizado / Crunch 🍤", act: "rate(['empanizado','crunchy'], 5); step2()"},
                     {txt: "Fresco / Natural 🥑", act: "rate(['natural','fresco'], 5); step2()"}
                 ];
             } else if(type.includes('pizza')) {
-                greeting = "¡Mamma Mia! 🍕 Soy tu Pizzaiolo IA.";
+                if (!SHOP_CONFIG.highDemand) greeting = "¡Mamma Mia! 🍕 Soy tu Pizzaiolo IA.";
                 q1 = "¿Cuántos van a comer hoy?";
                 opts1 = [
                     {txt: "Solo yo (Individual) 👤", act: "rate(['individual','chica'], 5); step2()"},
                     {txt: "Familia entera 👨‍👩‍👧‍👦", act: "rate(['familiar','grande','combo'], 5); step2()"}
                 ];
             } else if(type.includes('tacos')) {
-                greeting = "¡Qué onda! 🌮 Soy tu Taquero Robot.";
+                if (!SHOP_CONFIG.highDemand) greeting = "¡Qué onda! 🌮 Soy tu Taquero Robot.";
                 q1 = "¿Traes hambre de pastor o asada?";
                 opts1 = [
                     {txt: "Pastor 🍍", act: "rate(['pastor','adobada'], 5); step2()"},
@@ -449,11 +464,10 @@
         function showResult() {
             let winner = allItems[0], max = -1;
             allItems.forEach(i => {
-                const score = (aiScores[i.name]||0) + Math.random(); // Factor suerte
+                const score = (aiScores[i.name]||0) + Math.random(); 
                 if(score > max) { max = score; winner = i; }
             });
             
-            // Safe JSON stringify for button
             const safeWinner = JSON.stringify(winner).replace(/'/g, "&#39;");
 
             addMsg("¡Encontré esto para ti! 👇", true);
@@ -487,11 +501,10 @@
             });
         }
 
-        // --- CARRITO & CHECKOUT MEJORADO CON OPCIONES Y PRECIOS ---
+        // --- CARRITO & CHECKOUT ---
         
         function toggleCart() { document.getElementById('cart-modal').classList.toggle('active'); }
         
-        // Modal de Opciones
         function toggleOptionsModal(show) {
             const m = document.getElementById('options-modal');
             if(show) m.classList.add('active'); else m.classList.remove('active');
@@ -500,7 +513,6 @@
         function addToCart(item) {
             let options = item.options || [];
             
-            // LÓGICA DE GRUPO: Si tiene groupId, buscar las opciones en el grupo global
             if (item.groupId && MENU_DATA.groups) {
                 const group = MENU_DATA.groups.find(g => g.id === item.groupId);
                 if (group) {
@@ -509,21 +521,15 @@
             }
 
             if(options && options.length > 0) {
-                // Si el item tiene opciones (del grupo o individuales), abrir modal
                 pendingItem = item;
-                // Aseguramos que el precio sea numérico para evitar errores de concatenación
                 pendingItem.price = parseFloat(pendingItem.price); 
-
-                // Guardamos las opciones resueltas temporalmente para usarlas en confirmOptions
                 pendingItem._resolvedOptions = options;
                 
                 const container = document.getElementById('options-list');
                 
-                // Renderizar Opciones (Manejando objetos {name, price} o strings antiguos)
                 container.innerHTML = options.map((opt, idx) => {
-                    // Normalizar formato y asegurar tipos
                     const name = typeof opt === 'object' ? opt.name : opt;
-                    const price = typeof opt === 'object' ? (parseFloat(opt.price) || 0) : 0; // ParseFloat added safety
+                    const price = typeof opt === 'object' ? (parseFloat(opt.price) || 0) : 0; 
                     const priceTxt = price > 0 ? `(+$${price})` : '';
                     
                     return `
@@ -537,16 +543,14 @@
                     `;
                 }).join('');
                 
-                updateModalTotal(); // Calcular total inicial
+                updateModalTotal(); 
                 toggleOptionsModal(true);
             } else {
-                // Si no, agregar directo (asegurando precio numérico)
                 const itemToAdd = { ...item, price: parseFloat(item.price) };
                 addItemToCartInternal(itemToAdd, []);
             }
         }
 
-        // Calcular precio en tiempo real en el modal
         function updateModalTotal() {
             const checks = document.querySelectorAll('.option-check:checked');
             let extra = 0;
@@ -564,12 +568,9 @@
                 const name = c.dataset.name;
                 const price = parseFloat(c.dataset.price || 0);
                 extraCost += price;
-                // Formato bonito para mostrar en carrito
                 selectedNames.push(price > 0 ? `${name} (+$${price})` : name);
             });
             
-            // Creamos una copia del item con el precio actualizado (Base + Extras)
-            // IMPORTANTE: parseFloat asegura que se sume numéricamente, no concatene strings
             const basePrice = parseFloat(pendingItem.price);
             const finalPrice = basePrice + extraCost;
             
@@ -580,11 +581,7 @@
         }
 
         function addItemToCartInternal(item, options) {
-            // Generar una clave única basada en ID y opciones ordenadas para agrupar en carrito
             const optionsKey = options.sort().join('|');
-            
-            // Buscar si ya existe este producto exacto (con mismas opciones)
-            // Usamos item.name como identificador base
             const ex = cart.find(i => i.name === item.name && (i.selectedOptions || []).sort().join('|') === optionsKey);
             
             if(ex) {
@@ -615,14 +612,12 @@
             document.getElementById('checkout-btn').classList.remove('opacity-50', 'cursor-not-allowed');
 
             c.innerHTML = cart.map((i, idx) => {
-                // Mostrar opciones seleccionadas
                 const optsHtml = i.selectedOptions && i.selectedOptions.length > 0 
                     ? `<div class="text-[10px] text-blue-400 mt-1 font-medium bg-blue-900/30 px-2 py-0.5 rounded inline-block">
                         + ${i.selectedOptions.join(', ')}
                        </div>` 
                     : '';
                 
-                // Asegurar visualización de precio correcto
                 const displayPrice = parseFloat(i.price).toFixed(2);
                 const subtotal = (i.price * i.qty).toFixed(2);
 
@@ -662,7 +657,7 @@
             const item = cart[index];
             if(item) {
                 item.qty += delta;
-                if(item.qty <= 0) cart.splice(index, 1); // Remover por índice para manejar variantes duplicadas de nombre pero diferentes opciones
+                if(item.qty <= 0) cart.splice(index, 1); 
                 updateCart();
             }
         }
@@ -677,7 +672,6 @@
             const b = event.target; b.innerText="...";
             navigator.geolocation.getCurrentPosition(p=>{
                 userLocation={lat:p.coords.latitude, lng:p.coords.longitude};
-                // Calc Distancia (Haversine simple)
                 const R=6371, dL=(p.coords.latitude-SHOP_CONFIG.coords.lat)*Math.PI/180, dLo=(p.coords.longitude-SHOP_CONFIG.coords.lng)*Math.PI/180;
                 const a = Math.sin(dL/2)*Math.sin(dL/2) + Math.cos(SHOP_CONFIG.coords.lat*Math.PI/180)*Math.cos(p.coords.latitude*Math.PI/180) * Math.sin(dLo/2)*Math.sin(dLo/2);
                 distanceKm = R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
@@ -691,16 +685,20 @@
             const n = document.getElementById('cust-name').value, p = document.getElementById('cust-phone').value, a = document.getElementById('cust-address').value;
             if(!n || !p || !a) return alert("Faltan datos");
             
-            let m = `*PEDIDO ${SHOP_CONFIG.name}*\nCliente: ${n}\nTel: ${p}\nDir: ${a}\n\n`;
+            let paymentMethod = "Transferencia";
+            const payRadio = document.querySelector('input[name="pay"]:checked');
+            if(payRadio) {
+                paymentMethod = payRadio.value === 'efectivo' ? 'Efectivo' : 'Transferencia';
+            }
+
+            let m = `*PEDIDO ${SHOP_CONFIG.name}*\nCliente: ${n}\nTel: ${p}\nDir: ${a}\nPago: ${paymentMethod}\n\n`;
             cart.forEach(i=> {
-                // Incluir opciones en el mensaje de WhatsApp
                 const optsTxt = i.selectedOptions && i.selectedOptions.length > 0 ? ` (${i.selectedOptions.join(', ')})` : '';
                 m+=`${i.qty}x ${i.name}${optsTxt} $${(i.price*i.qty).toFixed(2)}\n`
             });
             m+=`\nTotal: ${document.getElementById('cart-total').innerText}`;
             window.open(`https://wa.me/521${SHOP_CONFIG.whatsapp}?text=${encodeURIComponent(m)}`, '_blank');
             
-            // Registrar pedido en DB (STATS)
             socket.emit('register-order', SHOP_SLUG);
         }
 
