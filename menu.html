@@ -154,16 +154,21 @@
                         <div id="location-result" class="text-xs mb-1"></div>
                         <textarea id="cust-address" placeholder="Dirección" class="w-full bg-gray-800 p-2 text-sm rounded text-white"></textarea>
                     </div>
-                    <div class="flex gap-2">
-                        <label><input type="radio" name="pay" value="transferencia" checked onchange="togglePay()"> Transf.</label>
-                        <label><input type="radio" name="pay" value="efectivo" onchange="togglePay()"> Efectivo</label>
+                    
+                    <!-- SECCIÓN DE PAGO MODIFICADA: SOLO TRANSFERENCIA -->
+                    <div class="mb-2 mt-4">
+                        <p class="text-sm font-bold text-gray-300 mb-2 flex items-center gap-2"><i class="fa-solid fa-money-bill-transfer text-blue-400"></i> Método de Pago:</p>
+                        <div class="text-xs text-blue-200 bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg">
+                            <p class="mb-1 font-bold uppercase tracking-wide">Transferencia Bancaria</p>
+                            <div class="space-y-1 text-gray-300">
+                                <p>Banco: <span id="disp-bank-name" class="font-bold text-white select-all"></span></p>
+                                <p>Cuenta/CLABE: <span id="disp-bank-clabe" class="font-bold text-white select-all"></span></p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="pay-cash" class="hidden"><input type="number" id="pay-amount" placeholder="¿Con cuánto pagas?" class="w-full bg-gray-700 p-2 rounded text-white"></div>
-                    <div id="pay-trans" class="text-xs text-gray-400 p-2 bg-gray-800 rounded">
-                        Banco: <span id="disp-bank-name"></span><br>Cuenta: <span id="disp-bank-clabe"></span>
-                    </div>
+
                 </div>
-                <button onclick="handleCheckout()" id="checkout-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Enviar Pedido</button>
+                <button onclick="handleCheckout()" id="checkout-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Enviar Pedido (WhatsApp)</button>
             </div>
         </div>
     </div>
@@ -222,6 +227,9 @@
 
         async function loadStoreData() {
             try {
+                // ADDED: Emit register-visit to make stats work!
+                socket.emit('register-visit', SHOP_SLUG);
+
                 const res = await fetch(`${API_URL}/api/shop/${SHOP_SLUG}`);
                 if(!res.ok) throw new Error();
                 const data = await res.json();
