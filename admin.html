@@ -229,17 +229,37 @@
                             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                                 <div class="flex justify-between items-center mb-4 border-b pb-2">
                                     <h3 class="font-bold text-gray-700 text-sm uppercase tracking-wide">🧩 Complementos</h3>
-                                    <button onclick="document.getElementById('group-creator').classList.toggle('hidden')" class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-gray-600"><i class="fa-solid fa-plus"></i></button>
+                                    <button onclick="openGroupCreator()" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold transition flex items-center gap-1"><i class="fa-solid fa-plus"></i> Nuevo</button>
                                 </div>
                                 
-                                <div id="group-creator" class="hidden bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200">
-                                    <input type="text" id="new-group-name" placeholder="Nombre (ej: Salsas)" class="w-full text-xs border border-gray-300 rounded p-1.5 mb-2">
-                                    <textarea id="new-group-options" placeholder="Opciones (Verde, Roja...)" class="w-full text-xs border border-gray-300 rounded p-1.5 h-16 mb-2"></textarea>
-                                    <button onclick="saveGroup()" class="w-full bg-gray-800 text-white text-xs py-1.5 rounded font-bold">Guardar</button>
+                                <!-- CREATOR FORM (NUEVO) -->
+                                <div id="group-creator" class="hidden bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200 animate-fade-in-up">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-gray-500 uppercase">Crear Grupo</span>
+                                        <button onclick="closeGroupCreator()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times"></i></button>
+                                    </div>
+                                    
+                                    <input type="text" id="new-group-name" placeholder="Nombre (ej: Elige tus Salsas)" class="w-full text-sm border border-gray-300 rounded p-2 mb-2 font-bold text-gray-700 outline-none focus:border-blue-500">
+                                    
+                                    <!-- Dynamic Options List -->
+                                    <div class="mb-2">
+                                        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Opciones (Nombre - Precio Extra)</label>
+                                        <div id="new-group-options-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                            <!-- Rows added via JS -->
+                                        </div>
+                                    </div>
+
+                                    <button onclick="addOptionRow()" class="w-full bg-white border border-dashed border-blue-300 text-blue-500 text-xs py-1.5 rounded mb-3 hover:bg-blue-50 transition font-bold flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-plus-circle"></i> Agregar Opción
+                                    </button>
+
+                                    <button onclick="saveGroup()" class="w-full bg-gray-900 text-white text-xs py-2 rounded font-bold hover:bg-black transition shadow-sm">
+                                        Guardar Grupo
+                                    </button>
                                 </div>
 
                                 <div id="groups-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                    <!-- Dynamic Groups -->
+                                    <!-- Dynamic Groups List -->
                                 </div>
                             </div>
                         </div>
@@ -419,11 +439,11 @@
             
             // Update sidebar active state
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active', 'bg-blue-50', 'text-blue-600', 'border-r-2', 'border-blue-600'));
-            // Simple logic to highlight active button (finding by onclick text is basic but works for this scale)
+            // Simple logic to highlight active button
             const activeBtn = Array.from(document.querySelectorAll('.nav-item')).find(b => b.getAttribute('onclick').includes(viewId));
             if(activeBtn) {
                 activeBtn.classList.add('active');
-                activeBtn.classList.remove('text-gray-600', 'hover:bg-gray-50'); // Clean up base classes if needed or just override
+                activeBtn.classList.remove('text-gray-600', 'hover:bg-gray-50'); 
             }
 
             // Specific Inits
@@ -463,8 +483,8 @@
                 const res = await fetch(`${API_URL}/api/admin/get`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ slug, password }) });
                 if(res.ok) {
                     SESSION = { slug, password, data: await res.json() };
-                    if(!SESSION.data.menu.groups) SESSION.data.menu.groups = []; // Init groups
-                    if(!SESSION.data.stats) SESSION.data.stats = { visits: 0, orders: 0 }; // Init stats
+                    if(!SESSION.data.menu.groups) SESSION.data.menu.groups = []; 
+                    if(!SESSION.data.stats) SESSION.data.stats = { visits: 0, orders: 0 }; 
                     localStorage.setItem('shop_slug', slug); localStorage.setItem('shop_pass', password);
                     socket.emit('join-store', slug);
                     initDashboard();
@@ -579,31 +599,90 @@
             });
         }
 
-        // --- GROUPS LOGIC ---
+        // --- GROUPS (COMPLEMENTOS) LOGIC ---
+        
+        function openGroupCreator() {
+            document.getElementById('group-creator').classList.remove('hidden');
+            document.getElementById('new-group-name').value = '';
+            document.getElementById('new-group-options-list').innerHTML = '';
+            addOptionRow(); // Agregamos una fila vacía por defecto
+        }
+
+        function closeGroupCreator() {
+            document.getElementById('group-creator').classList.add('hidden');
+        }
+
+        // Agrega una fila visual para una opción (Nombre + Precio)
+        function addOptionRow() {
+            const container = document.getElementById('new-group-options-list');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 mb-2 items-center option-row";
+            div.innerHTML = `
+                <input type="text" placeholder="Ej: Queso Extra" class="flex-1 text-xs border border-gray-300 rounded p-1.5 focus:ring-1 focus:ring-blue-500 outline-none option-name">
+                <input type="number" placeholder="$0" class="w-16 text-xs border border-gray-300 rounded p-1.5 focus:ring-1 focus:ring-blue-500 outline-none option-price" min="0">
+                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 px-1"><i class="fa-solid fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
         function renderGroups() {
             const list = document.getElementById('groups-list');
             const groups = SESSION.data.menu.groups || [];
             if(groups.length === 0) { list.innerHTML = `<div class="text-gray-400 text-xs text-center py-2 italic">Sin grupos aún.</div>`; return; }
-            list.innerHTML = groups.map((g, idx) => `
-                <div class="flex items-center justify-between bg-white p-2 rounded border border-gray-100 text-xs">
-                    <div><span class="font-bold">${g.name}</span> <span class="text-gray-400">(${g.options.length} ops)</span></div>
-                    <button onclick="deleteGroup(${idx})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+            
+            list.innerHTML = groups.map((g, idx) => {
+                // Compatibilidad: manejamos si las opciones son strings simples (formato antiguo) o objetos (nuevo)
+                const isOldFormat = g.options.length > 0 && typeof g.options[0] === 'string';
+                const count = g.options.length;
+                const typeLabel = isOldFormat ? '<span class="text-xs text-orange-400">(Simple)</span>' : '<span class="text-xs text-green-500">(Con Precios)</span>';
+
+                return `
+                <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm relative group">
+                    <div class="flex justify-between items-start mb-1">
+                        <div>
+                            <span class="font-bold text-sm text-gray-800">${g.name}</span>
+                            <div class="text-[10px] text-gray-400">${count} opciones ${typeLabel}</div>
+                        </div>
+                        <button onclick="deleteGroup(${idx})" class="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function saveGroup() {
             const name = document.getElementById('new-group-name').value;
-            const optsTxt = document.getElementById('new-group-options').value;
-            if(!name || !optsTxt) return alert("Llena los campos");
-            const newGroup = { id: 'g-'+Date.now(), name, options: optsTxt.split(',').map(t=>t.trim()).filter(t=>t) };
+            const rows = document.querySelectorAll('.option-row');
+            
+            if(!name) return alert("Por favor asigna un nombre al grupo.");
+            if(rows.length === 0) return alert("Debes agregar al menos una opción.");
+
+            const options = [];
+            let hasError = false;
+
+            rows.forEach(row => {
+                const optName = row.querySelector('.option-name').value.trim();
+                const optPrice = parseFloat(row.querySelector('.option-price').value);
+
+                if (optName) {
+                    options.push({ 
+                        name: optName, 
+                        price: isNaN(optPrice) ? 0 : optPrice // Si no pone precio, es 0 (gratis)
+                    });
+                }
+            });
+
+            if(options.length === 0) return alert("Agrega nombres a las opciones.");
+
+            const newGroup = { id: 'g-'+Date.now(), name, options };
             SESSION.data.menu.groups.push(newGroup);
-            document.getElementById('new-group-name').value = ''; document.getElementById('new-group-options').value = '';
-            renderGroups(); document.getElementById('group-creator').classList.add('hidden');
+            
+            renderGroups(); 
+            closeGroupCreator();
         }
 
         function deleteGroup(idx) {
-            if(confirm("¿Eliminar grupo?")) { SESSION.data.menu.groups.splice(idx, 1); renderGroups(); }
+            if(confirm("¿Eliminar este grupo de complementos?")) { SESSION.data.menu.groups.splice(idx, 1); renderGroups(); }
         }
 
         // --- PRODUCT MODAL ---
