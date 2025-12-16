@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cocina - KDS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/es.min.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #1a1a1a; color: #e5e5e5; }
+        .ticket { transition: all 0.3s; animation: slideIn 0.4s ease-out; }
+        .ticket:hover { transform: translateY(-2px); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .type-mesa { border-left: 6px solid #6366f1; } /* Indigo */
+        .type-llevar { border-left: 6px solid #f97316; } /* Orange */
+        
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" class="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
+        <div class="bg-gray-900 p-8 rounded-2xl w-full max-w-sm border border-gray-800 text-center">
+            <h1 class="text-3xl font-bold text-white mb-2">👨‍🍳 Cocina</h1>
+            <p class="text-gray-500 mb-6">Ingresa para ver las comandas</p>
+            <form onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
+                <input type="text" id="login-slug" placeholder="Link Tienda (ej: miburger)" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-center focus:border-blue-500 outline-none">
+                <input type="password" id="login-pass" placeholder="Contraseña" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-center focus:border-blue-500 outline-none">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-container" class="hidden flex-1 flex flex-col">
+        <!-- Header -->
+        <header class="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold text-white">KDS <span class="text-gray-500 text-sm font-normal ml-2" id="shop-name-display">...</span></h1>
+                <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse" title="Conectado"></div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm font-bold text-gray-400" id="clock">00:00</span>
+                <button onclick="logout()" class="text-gray-500 hover:text-white"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <!-- Tickets Grid -->
+        <div class="flex-1 overflow-y-auto p-4 bg-[#121212]">
+            <div id="tickets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div class="col-span-full text-center text-gray-600 mt-20">
+                    <i class="fa-solid fa-utensils text-4xl mb-4"></i>
+                    <p>Esperando pedidos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO FOR ALERTS -->
+    <audio id="bell-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        const API_URL = "https://menuia.onrender.com";
+        const socket = io(API_URL);
+        
+        let SESSION = { slug: null, password: null };
+        let activeOrders = [];
+
+        // --- AUTH ---
+        window.onload = () => {
+            const s = localStorage.getItem('shop_slug'), p = localStorage.getItem('shop_pass');
+            if(s && p) { document.getElementById('login-slug').value=s; document.getElementById('login-pass').value=p; handleLogin(); }
+            setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 1000);
+        };
+
+        async function handleLogin() {
+            const slug = document.getElementById('login-slug').value.trim().toLowerCase();
+            const password = document.getElementById('login-pass').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/admin/get`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ slug, password })
+                });
+                
+                if(res.ok) {
+                    const data = await res.json();
+                    SESSION = { slug, password };
+                    localStorage.setItem('shop_slug', slug); localStorage.setItem('shop_pass', password);
+                    document.getElementById('shop-name-display').innerText = data.config.name;
+                    
+                    // Init App
+                    document.getElementById('login-overlay').classList.add('hidden');
+                    document.getElementById('app-container').classList.remove('hidden');
+                    
+                    // Socket Join & Listen
+                    socket.emit('join-store', slug);
+                    socket.on('new-order-saved', () => {
+                        playBell();
+                        loadOrders();
+                    });
+
+                    loadOrders();
+                } else {
+                    if(document.getElementById('login-overlay').classList.contains('hidden')) logout(); // Invalid session
+                    else alert("Credenciales incorrectas");
+                }
+            } catch(e) { alert("Error de conexión"); }
+        }
+
+        async function loadOrders() {
+            try {
+                const res = await fetch(`${API_URL}/api/orders/list`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ slug: SESSION.slug, password: SESSION.password })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    // Filter pending only for KDS
+                    activeOrders = data.orders.filter(o => o.status === 'pending');
+                    // Reverse to show oldest first (FIFO - First In First Out) for Kitchen
+                    activeOrders.reverse(); 
+                    renderTickets();
+                }
+            } catch(e) { console.error("Error loading orders", e); }
+        }
+
+        function renderTickets() {
+            const grid = document.getElementById('tickets-grid');
+            if(activeOrders.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-gray-600 mt-20"><i class="fa-solid fa-check-circle text-4xl mb-4 text-green-800"></i><p>Todo al día</p></div>`;
+                return;
+            }
+
+            grid.innerHTML = activeOrders.map(order => {
+                const timeAgo = moment(order.createdAt).fromNow(true); // "5 minutes"
+                const isLongWait = (Date.now() - new Date(order.createdAt)) > 1000 * 60 * 15; // > 15 mins
+                const typeClass = order.type === 'mesa' ? 'type-mesa' : 'type-llevar';
+                const timeClass = isLongWait ? 'text-red-400 font-bold animate-pulse-slow' : 'text-gray-400';
+
+                const itemsHtml = order.items.map(i => {
+                    const opts = (i.selectedOpts || []).map(o => `<span class="text-gray-500 text-xs ml-1">+${o.name}</span>`).join('');
+                    return `
+                    <div class="flex items-start py-2 border-b border-gray-700 last:border-0">
+                        <span class="font-bold text-lg mr-2 text-white w-6">${i.qty}</span>
+                        <div class="flex-1">
+                            <div class="text-gray-200 font-medium leading-tight">${i.name}</div>
+                            ${opts ? `<div class="mt-0.5">${opts}</div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                return `
+                <div class="ticket bg-gray-800 rounded-lg overflow-hidden shadow-lg flex flex-col ${typeClass}">
+                    <div class="bg-gray-800 p-3 border-b border-gray-700 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-gray-500">${order.type}</span>
+                            <div class="text-xl font-bold text-white">${order.ref}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs ${timeClass}"><i class="fa-regular fa-clock"></i> ${timeAgo}</div>
+                            <div class="text-[10px] text-gray-600">#${order._id.slice(-4)}</div>
+                        </div>
+                    </div>
+                    <div class="p-3 flex-1 overflow-y-auto max-h-[300px]">
+                        ${itemsHtml}
+                    </div>
+                    <div class="p-3 bg-gray-800 border-t border-gray-700">
+                        <button onclick="completeOrder('${order._id}')" class="w-full bg-green-700 hover:bg-green-600 text-white font-bold py-3 rounded text-sm transition flex items-center justify-center gap-2">
+                            LISTO <i class="fa-solid fa-check"></i>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function completeOrder(id) {
+            // Optimistic update
+            document.getElementById('tickets-grid').innerHTML = '<div class="col-span-full text-center mt-10"><i class="fa-solid fa-spinner fa-spin text-gray-500"></i></div>';
+            
+            try {
+                await fetch(`${API_URL}/api/orders/update-status`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ slug: SESSION.slug, password: SESSION.password, orderId: id, status: 'completed' })
+                });
+                await loadOrders(); // Reload to confirm and sync
+            } catch(e) { 
+                alert("Error al completar");
+                loadOrders();
+            }
+        }
+
+        function playBell() {
+            const audio = document.getElementById('bell-sound');
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio autoplay blocked by browser"));
+        }
+
+        function logout() { localStorage.removeItem('shop_pass'); location.reload(); }
+    </script>
+</body>
+</html>
