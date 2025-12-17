@@ -262,13 +262,13 @@
                         <p class="text-sm font-bold text-gray-300 mb-2">Método de Pago:</p>
                         <div class="flex gap-2 mb-2">
                             <label class="flex-1 cursor-pointer">
-                                <input type="radio" name="pay" value="transferencia" class="peer sr-only" checked onchange="togglePay()">
+                                <input type="radio" name="pay" value="Transferencia" class="peer sr-only" checked onchange="togglePay()">
                                 <div class="bg-gray-700 peer-checked:bg-blue-600 peer-checked:border-blue-400 border border-transparent rounded p-2 text-center text-xs transition text-white">
                                     <i class="fa-solid fa-building-columns mb-1 block"></i> Transferencia
                                 </div>
                             </label>
                             <label class="flex-1 cursor-pointer">
-                                <input type="radio" name="pay" value="efectivo" class="peer sr-only" onchange="togglePay()">
+                                <input type="radio" name="pay" value="Efectivo" class="peer sr-only" onchange="togglePay()">
                                 <div class="bg-gray-700 peer-checked:bg-green-600 peer-checked:border-green-400 border border-transparent rounded p-2 text-center text-xs transition text-white">
                                     <i class="fa-solid fa-money-bill-wave mb-1 block"></i> Efectivo
                                 </div>
@@ -336,9 +336,6 @@
                     <h2 class="text-xl font-bold text-white mb-1" id="tracker-status-text">Esperando confirmación...</h2>
                     <p class="text-sm text-gray-500" id="tracker-status-desc">Tu pedido ha sido enviado al restaurante.</p>
                 </div>
-                
-                <!-- Botón de Simulación para Demostración (Opcional, se puede quitar en prod) -->
-                <button onclick="simulateProgress()" class="mt-4 text-[10px] text-gray-600 hover:text-gray-400 underline w-full text-center">Simular Progreso (Demo)</button>
             </div>
         </div>
     </div>
@@ -392,9 +389,14 @@
             
             // ESCUCHAR NUEVOS PEDIDOS (Para guardar ID si es el nuestro)
             socket.on('order-created-client', (order) => {
-                // Verificar si este pedido nos pertenece (por teléfono)
-                if (USER_DATA && order.customerPhone === USER_DATA.phone) {
+                // Verificar si este pedido nos pertenece.
+                // Puede ser por sesión (USER_DATA) O por el pedido temporal activo que coincida el teléfono.
+                const isMyOrder = (USER_DATA && order.customerPhone === USER_DATA.phone) || 
+                                  (ACTIVE_ORDER && ACTIVE_ORDER.customerPhone === order.customerPhone && ACTIVE_ORDER._id.startsWith('TEMP-'));
+                
+                if (isMyOrder) {
                     saveActiveOrder(order);
+                    showToast("¡Restaurante recibió tu pedido!");
                 }
             });
 
@@ -478,7 +480,7 @@
             const txtDesc = document.getElementById('tracker-status-desc');
             const orderIdDisp = document.getElementById('tracker-order-id');
             
-            if(ACTIVE_ORDER) orderIdDisp.innerText = `Orden #${ACTIVE_ORDER._id.slice(-6).toUpperCase()}`;
+            if(ACTIVE_ORDER) orderIdDisp.innerText = `Orden #${(ACTIVE_ORDER.dailyId || ACTIVE_ORDER._id || '...').toString().slice(-6).toUpperCase()}`;
 
             if(status === 'pending') { txtTitle.innerText = "Pedido Confirmado"; txtDesc.innerText = "Hemos recibido tu orden y la estamos revisando."; }
             else if(status === 'preparing') { txtTitle.innerText = "En la Cocina 🔥"; txtDesc.innerText = "Nuestros chefs están preparando tus platillos."; }
@@ -497,17 +499,6 @@
                     el.querySelector('.pulse-ring').style.display = 'block';
                 }
             }
-        }
-        
-        // Función DEMO para simular progreso si el backend no se actualiza
-        function simulateProgress() {
-            const statuses = ['pending', 'preparing', 'ready', 'delivering'];
-            let current = 0;
-            const interval = setInterval(() => {
-                if(current >= statuses.length) { clearInterval(interval); return; }
-                updateTrackerUI(statuses[current]);
-                current++;
-            }, 2000);
         }
 
         // --- AUTH & USER LOGIC ---
@@ -886,7 +877,7 @@
             
             let paymentMethod = "Transferencia";
             const payRadio = document.querySelector('input[name="pay"]:checked');
-            if(payRadio) { paymentMethod = payRadio.value === 'efectivo' ? 'Efectivo' : 'Transferencia'; }
+            if(payRadio) { paymentMethod = payRadio.value === 'Efectivo' ? 'Efectivo' : 'Transferencia'; }
 
             // 1. WhatsApp Message (Frontend User Experience)
             let m = `*PEDIDO ${SHOP_CONFIG.name}*\nCliente: ${n}\nTel: ${p}\nDir: ${a}\nPago: ${paymentMethod}\n\n`;
@@ -907,6 +898,8 @@
                     order: {
                         ref: n,
                         customerPhone: p, // Importante para el tracking
+                        address: a,
+                        paymentMethod: paymentMethod,
                         type: 'llevar', // Asumimos llevar para pedidos web
                         items: items,
                         total: total,
@@ -918,8 +911,10 @@
                 // Simular guardado inmediato local para UX instantánea
                 saveActiveOrder({
                     _id: 'TEMP-' + Date.now(), // ID temporal hasta que el server confirme (o usar solo local visualmente)
+                    dailyId: '...', // Placeholder hasta confirmación
                     status: 'pending',
                     ref: n,
+                    customerPhone: p, // Guardamos el telefono tambien en el local para que la validacion de socket funcione
                     total: total
                 });
                 toggleTrackerModal(true);
