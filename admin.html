@@ -290,7 +290,7 @@
                     </div>
                 </div>
 
-                <!-- VIEW: ORDERS MONITOR -->
+                <!-- VIEW: ORDERS MONITOR (MODIFICADO) -->
                 <div id="view-orders" class="view-section hidden fade-enter">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">Monitor de Pedidos</h2>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-150px)]">
@@ -299,8 +299,8 @@
                             <button onclick="renderOrdersTable('pending')" class="px-4 py-2 text-xs font-bold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">Pendientes</button>
                             <button onclick="renderOrdersTable('completed')" class="px-4 py-2 text-xs font-bold rounded-full bg-green-100 text-green-700 border border-green-200">Completados</button>
                         </div>
-                        <div class="flex-1 overflow-y-auto p-4" id="orders-list-container">
-                            <div class="text-center text-gray-400 mt-10">Cargando pedidos...</div>
+                        <div class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="orders-list-container">
+                            <div class="text-center text-gray-400 mt-10 w-full col-span-full">Cargando pedidos...</div>
                         </div>
                     </div>
                 </div>
@@ -507,7 +507,75 @@
     </div>
 
     <!-- Modals (Producto, Opciones POS, Suscripción) -->
-    <!-- ... (MODALS CODE REMAINS THE SAME AS IN THE PREVIOUS COMPLETE VERSION) ... -->
+    
+    <!-- ORDER DETAIL MODAL (NUEVO) -->
+    <div id="order-detail-modal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col h-full max-h-[85vh] animate-fade-in-up">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center text-white">
+                <div>
+                    <h3 class="font-bold text-xl flex items-center gap-2">
+                        <i class="fa-solid fa-receipt"></i> <span id="detail-order-id">Pedido #0</span>
+                    </h3>
+                    <p class="text-xs text-gray-400" id="detail-order-date">...</p>
+                </div>
+                <button onclick="document.getElementById('order-detail-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-6">
+                
+                <!-- Status & Payment -->
+                <div class="flex gap-4">
+                    <div class="flex-1 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Estado Actual</p>
+                        <div id="detail-status-badge"></div>
+                    </div>
+                    <div class="flex-1 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Pago</p>
+                        <p class="font-bold text-gray-800" id="detail-payment">...</p>
+                    </div>
+                </div>
+
+                <!-- Customer Info -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-gray-700 text-sm mb-3 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-user text-blue-500"></i> Cliente</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex"><span class="text-gray-500 w-20">Nombre:</span> <span class="font-bold text-gray-800" id="detail-cust-name">...</span></div>
+                        <div class="flex"><span class="text-gray-500 w-20">Teléfono:</span> <span class="font-bold text-gray-800" id="detail-cust-phone">...</span></div>
+                        <div class="flex items-start"><span class="text-gray-500 w-20">Dirección:</span> <span class="font-bold text-gray-800 flex-1" id="detail-cust-address">...</span></div>
+                    </div>
+                </div>
+
+                <!-- Items List -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-gray-700 text-sm mb-3 border-b pb-2 flex items-center gap-2"><i class="fa-solid fa-utensils text-orange-500"></i> Productos</h4>
+                    <div id="detail-items-list" class="space-y-3">
+                        <!-- Items rendered here -->
+                    </div>
+                    <div class="border-t border-gray-100 mt-3 pt-2 flex justify-between items-center">
+                        <span class="font-bold text-gray-600">Total</span>
+                        <span class="font-bold text-xl text-green-600" id="detail-total">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 bg-white border-t border-gray-200 flex flex-col gap-3">
+                <p class="text-xs font-bold text-gray-400 uppercase text-center mb-1">Cambiar Estado del Pedido</p>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="updateOrderStatus('pending')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-gray-50 border-gray-300 text-gray-500">Pendiente</button>
+                    <button onclick="updateOrderStatus('preparing')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-orange-50 border-orange-200 text-orange-600">Cocina</button>
+                    <button onclick="updateOrderStatus('ready')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-blue-50 border-blue-200 text-blue-600">Listo</button>
+                    <button onclick="updateOrderStatus('completed')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-green-50 border-green-200 text-green-600">Entregado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Otros Modals (Product, POS Options, Sub) -->
     <div id="product-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-up">
             <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center"><h3 class="font-bold text-lg text-gray-800">Producto</h3><button onclick="closeProductModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -534,6 +602,7 @@
         let currentCategory = 'promos';
         let posCart = [], posOrderType = 'mesa', pendingPosItem = null;
         let ordersHistory = []; 
+        let currentDetailOrder = null; 
 
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
@@ -547,10 +616,8 @@
             if(viewId === 'pos') initPOS();
             if(viewId === 'orders') fetchAndRenderOrders('all'); 
             
-            // Check global save button visibility
             const saveBtn = document.querySelector('button[onclick="saveChanges()"]');
             if(saveBtn) {
-                // Show save button on Settings AND Menu tabs
                 if(viewId === 'settings' || viewId === 'menu') saveBtn.classList.remove('hidden');
                 else saveBtn.classList.add('hidden');
             }
@@ -564,8 +631,6 @@
         window.onload = () => {
             const s = localStorage.getItem('shop_slug'), p = localStorage.getItem('shop_pass');
             if(s && p) { document.getElementById('login-slug').value = s; document.getElementById('login-pass').value = p; }
-            
-            // Setup High Demand toggle listener
             document.getElementById('conf-high-demand-active').addEventListener('change', toggleHighDemandInput);
         };
 
@@ -576,7 +641,6 @@
                 const res = await fetch(`${API_URL}/api/admin/get`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ slug, password }) });
                 if(res.ok) {
                     SESSION = { slug, password, data: await res.json() };
-                    // Inicializar objetos vacíos si no existen para evitar errores
                     if(!SESSION.data.menu) SESSION.data.menu = { promos: [], especiales: [], clasicos: [], extras: [], groups: [] };
                     if(!SESSION.data.menu.groups) SESSION.data.menu.groups = []; 
                     if(!SESSION.data.stats) SESSION.data.stats = { visits: 0, orders: 0 }; 
@@ -597,7 +661,6 @@
             const stats = SESSION.data.stats || { visits: 0, orders: 0 };
             document.getElementById('dash-owner-name').innerText = SESSION.data.credentials.ownerName || 'Dueño';
             
-            // Safe count calculation
             const prodCount = (SESSION.data.menu.promos?.length||0) + (SESSION.data.menu.especiales?.length||0) + 
                               (SESSION.data.menu.clasicos?.length||0) + (SESSION.data.menu.extras?.length||0);
             
@@ -619,7 +682,6 @@
             document.getElementById('conf-open').value = c.hours?.open;
             document.getElementById('conf-close').value = c.hours?.close;
             
-            // High Demand init
             const hd = c.highDemand || false;
             document.getElementById('conf-high-demand-active').checked = hd;
             document.getElementById('conf-high-demand-time').value = c.highDemandTime || '';
@@ -754,7 +816,19 @@
             const total=document.getElementById('pos-total').innerText; 
             const ref=document.getElementById('pos-customer-ref').value||"General"; 
             
-            socket.emit('register-order', {slug:SESSION.slug, order:{items:posCart, total, ref, type:posOrderType, status:'pending'}}); 
+            socket.emit('register-order', {
+                slug:SESSION.slug, 
+                order:{
+                    items:posCart, 
+                    total, 
+                    ref, 
+                    type:posOrderType, 
+                    status:'completed', // POS orders are completed directly mostly
+                    paymentMethod: 'Efectivo', // Default for POS
+                    customerPhone: 'POS',
+                    address: ''
+                }
+            }); 
             
             const html = generateTicketHTML(posCart, total, ref); 
             document.getElementById('print-area').innerHTML = html; 
@@ -765,59 +839,158 @@
             setTimeout(()=>fetchAndRenderOrders('all'),500); 
         }
 
-        // --- ORDERS MONITOR ---
+        // --- ORDERS MONITOR (ACTUALIZADO) ---
         async function fetchAndRenderOrders(filter) {
             const container = document.getElementById('orders-list-container');
-            container.innerHTML = `<div class="text-center text-gray-400 mt-10"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</div>`;
+            container.innerHTML = `<div class="text-center text-gray-400 mt-10 col-span-full"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</div>`;
             try {
                 const res = await fetch(`${API_URL}/api/orders/list`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ slug: SESSION.slug, password: SESSION.password }) });
                 const data = await res.json();
                 if(data.success) { ordersHistory = data.orders; renderOrders(filter); }
-            } catch(e) { container.innerHTML = `<div class="text-center text-red-400 mt-10">Error cargando pedidos</div>`; }
+            } catch(e) { container.innerHTML = `<div class="text-center text-red-400 mt-10 col-span-full">Error cargando pedidos</div>`; }
         }
         function renderOrdersTable(f) { if(ordersHistory.length===0) fetchAndRenderOrders(f); else renderOrders(f); }
+        
         function renderOrders(f) {
             const c = document.getElementById('orders-list-container');
             let orders = ordersHistory;
-            if(f==='pending') orders=orders.filter(o=>o.status==='pending'); if(f==='completed') orders=orders.filter(o=>o.status==='completed');
-            if(orders.length===0) { c.innerHTML = `<div class="text-center text-gray-400 mt-10">No hay pedidos en esta categoría.</div>`; return; }
+            if(f==='pending') orders=orders.filter(o=>o.status==='pending' || o.status==='preparing'); 
+            if(f==='completed') orders=orders.filter(o=>o.status==='completed' || o.status==='delivering' || o.status==='ready');
+            
+            if(orders.length===0) { c.innerHTML = `<div class="text-center text-gray-400 mt-10 col-span-full">No hay pedidos en esta categoría.</div>`; return; }
+            
+            // RENDERING CARDS MINIMALISTAS
             c.innerHTML = orders.map(o => {
-                const time = moment(o.createdAt).fromNow();
-                const itemsSummary = o.items.map(i => `${i.qty}x ${i.name}`).join(', ');
-                const typeBadge = o.type === 'mesa' ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700';
-                
+                let badgeClass = 'bg-gray-100 text-gray-600';
+                let statusIcon = 'fa-circle-question';
+                if(o.status === 'pending') { badgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200'; statusIcon = 'fa-clock'; }
+                if(o.status === 'preparing') { badgeClass = 'bg-orange-100 text-orange-700 border-orange-200'; statusIcon = 'fa-fire-burner'; }
+                if(o.status === 'ready') { badgeClass = 'bg-blue-100 text-blue-700 border-blue-200'; statusIcon = 'fa-box-open'; }
+                if(o.status === 'completed') { badgeClass = 'bg-green-100 text-green-700 border-green-200'; statusIcon = 'fa-check-circle'; }
+
+                const safeOrder = JSON.stringify(o).replace(/"/g, '&quot;');
+
                 return `
-                <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm flex flex-col md:flex-row justify-between gap-4 animate-fade-in-up">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${typeBadge}">${o.type}</span>
-                            <span class="font-bold text-gray-800">${o.ref}</span>
-                            <span class="text-xs text-gray-400">• ${time}</span>
+                <div onclick="openOrderDetails(${safeOrder})" class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer group relative overflow-hidden animate-fade-in-up">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-blue-50 to-transparent rounded-bl-full -mr-4 -mt-4 opacity-50"></div>
+                    
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-xl text-gray-800">Pedido #${o.dailyId || '?'}</h3>
+                            <p class="text-xs text-gray-400 font-medium">${moment(o.createdAt).fromNow()}</p>
                         </div>
-                        <p class="text-sm text-gray-600 line-clamp-2">${itemsSummary}</p>
+                        <div class="rounded-full px-2 py-1 text-[10px] font-bold uppercase border ${badgeClass} flex items-center gap-1">
+                            <i class="fa-solid ${statusIcon}"></i> ${o.status}
+                        </div>
                     </div>
-                    <div class="flex flex-col items-end gap-2 min-w-[120px]">
-                        <span class="font-bold text-lg text-gray-800">${o.total}</span>
-                        <div class="flex gap-2">
-                            ${o.status==='pending' 
-                                ? `<button onclick="toggleOrderStatus('${o._id}', 'completed')" class="px-3 py-2 bg-yellow-100 hover:bg-green-100 text-yellow-700 hover:text-green-700 rounded font-bold text-xs transition flex items-center gap-1"><i class="fa-solid fa-clock"></i> Pendiente</button>` 
-                                : `<button onclick="toggleOrderStatus('${o._id}', 'pending')" class="px-3 py-2 bg-green-100 text-green-700 rounded font-bold text-xs flex items-center gap-1 cursor-default"><i class="fa-solid fa-check"></i> Listo</button>`
-                            }
+                    
+                    <div class="bg-gray-50 rounded-lg p-2 mb-3 border border-gray-100">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-500 font-medium">Método Pago</span>
+                            <span class="font-bold text-gray-800">${o.paymentMethod || 'No especificado'}</span>
                         </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase">${o.items ? o.items.length : 0} Artículos</span>
+                        <span class="text-indigo-600 font-bold text-sm group-hover:underline">Ver Detalles <i class="fa-solid fa-arrow-right ml-1"></i></span>
                     </div>
                 </div>`;
             }).join('');
         }
-        async function toggleOrderStatus(id, s) { 
-            const o = ordersHistory.find(x=>x._id===id); if(o) { o.status=s; renderOrders('all'); 
-            await fetch(`${API_URL}/api/orders/update-status`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slug:SESSION.slug, password:SESSION.password, orderId:id, status:s}) }); } 
+
+        // --- ORDER DETAIL MODAL LOGIC ---
+        function openOrderDetails(order) {
+            currentDetailOrder = order;
+            const m = document.getElementById('order-detail-modal');
+            
+            document.getElementById('detail-order-id').innerText = `Pedido #${order.dailyId || '?'}`;
+            document.getElementById('detail-order-date').innerText = moment(order.createdAt).format('LLLL');
+            
+            // Status Badge
+            const statusMap = {
+                'pending': '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">Pendiente</span>',
+                'preparing': '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">En Cocina</span>',
+                'ready': '<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">Listo para Entrega</span>',
+                'completed': '<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Completado/Entregado</span>'
+            };
+            document.getElementById('detail-status-badge').innerHTML = statusMap[order.status] || order.status;
+            document.getElementById('detail-payment').innerText = order.paymentMethod || 'N/A';
+            
+            // Customer
+            document.getElementById('detail-cust-name').innerText = order.ref || 'Cliente General';
+            document.getElementById('detail-cust-phone').innerText = order.customerPhone || 'N/A';
+            document.getElementById('detail-cust-address').innerText = order.address || 'Recoger en Tienda / N/A';
+            
+            // Items
+            const itemsList = document.getElementById('detail-items-list');
+            if (order.items && order.items.length > 0) {
+                itemsList.innerHTML = order.items.map(i => {
+                    const opts = (i.options || []).map(o => typeof o === 'string' ? o : o.name).join(', ');
+                    const optsHtml = opts ? `<div class="text-[10px] text-gray-500 mt-0.5 bg-gray-100 px-1.5 py-0.5 rounded inline-block"><i class="fa-solid fa-plus-circle text-xs mr-1"></i>${opts}</div>` : '';
+                    return `
+                    <div class="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
+                        <div class="flex-1">
+                            <span class="font-bold text-gray-800 text-sm">${i.qty}x ${i.name}</span>
+                            ${optsHtml}
+                        </div>
+                        <span class="font-bold text-gray-600 text-sm">$${(i.price * i.qty).toFixed(2)}</span>
+                    </div>`;
+                }).join('');
+            } else {
+                itemsList.innerHTML = '<p class="text-gray-400 text-center text-sm">Sin artículos registrados</p>';
+            }
+            
+            document.getElementById('detail-total').innerText = order.total || '$0.00';
+            
+            // Active button highlight
+            document.querySelectorAll('.status-btn').forEach(b => {
+                if (b.getAttribute('onclick').includes(`'${order.status}'`)) {
+                    b.classList.add('ring-2', 'ring-offset-1', 'ring-gray-400');
+                } else {
+                    b.classList.remove('ring-2', 'ring-offset-1', 'ring-gray-400');
+                }
+            });
+
+            m.classList.remove('hidden');
+        }
+
+        async function updateOrderStatus(newStatus) {
+            if (!currentDetailOrder) return;
+            
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "...";
+            
+            try {
+                const res = await fetch(`${API_URL}/api/orders/update-status`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        slug: SESSION.slug,
+                        password: SESSION.password,
+                        orderId: currentDetailOrder._id,
+                        status: newStatus
+                    })
+                });
+                
+                if (res.ok) {
+                    currentDetailOrder.status = newStatus;
+                    openOrderDetails(currentDetailOrder); // Refresh modal UI
+                    fetchAndRenderOrders('all'); // Refresh list behind
+                } else {
+                    alert("Error al actualizar");
+                }
+            } catch (e) {
+                alert("Error de conexión");
+            }
+            btn.innerText = originalText;
         }
 
         // --- MENU LOGIC ---
         function renderMenuGrid(cat) { currentCategory=cat; 
             document.querySelectorAll('[id^="btn-cat-"]').forEach(b => { if(b.id === `btn-cat-${cat}`) b.className = "px-4 py-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap"; else b.className = "px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 whitespace-nowrap"; });
             
-            // Check if menu exists
             if (!SESSION.data.menu || !SESSION.data.menu[cat]) {
                 document.getElementById('menu-grid').innerHTML = '<div class="text-center text-gray-400">Sin productos</div>';
                 return;
@@ -835,7 +1008,6 @@
         }
         
         function renderGroups() {
-            // Check if groups exist
             if (!SESSION.data.menu || !SESSION.data.menu.groups) {
                 document.getElementById('groups-list').innerHTML = `<div class="text-gray-400 text-xs text-center py-2 italic">Sin grupos aún.</div>`;
                 return;
@@ -861,7 +1033,6 @@
             
             SESSION.data.menu.groups.push({ id: 'g-'+Date.now(), name, options: opts }); 
             renderGroups(); closeGroupCreator(); 
-            // Trigger auto-save for groups too
             saveDataToServer(false);
         }
         
@@ -876,43 +1047,24 @@
         function openProductModal(idx=-1) { 
             editingIdx = idx; document.getElementById('product-modal').classList.remove('hidden');
             const sel = document.getElementById('prod-group-select');
-            
-            // Populate Groups Select
             const groups = (SESSION.data.menu && SESSION.data.menu.groups) ? SESSION.data.menu.groups : [];
             sel.innerHTML = '<option value="">-- Sin Complementos --</option>' + groups.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
-            
             if(idx === -1) { ['prod-name','prod-desc','prod-price','prod-original','prod-img-url','prod-tags'].forEach(i=>document.getElementById(i).value=''); document.getElementById('prod-img-preview').src=''; sel.value=""; } 
             else { const item = SESSION.data.menu[currentCategory][idx]; document.getElementById('prod-name').value=item.name; document.getElementById('prod-desc').value=item.description; document.getElementById('prod-price').value=item.price; document.getElementById('prod-original').value=item.originalPrice||''; document.getElementById('prod-img-url').value=item.image||''; document.getElementById('prod-img-preview').src=item.image||''; document.getElementById('prod-tags').value=(item.tags||[]).join(','); sel.value=item.groupId||""; }
         }
         function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); }
         function handleImageUpload(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>{document.getElementById('prod-img-preview').src=e.target.result;document.getElementById('prod-img-url').value=e.target.result;}; r.readAsDataURL(i.files[0]); } }
         
-        // --- UPDATED SAVE PRODUCT LOGIC (Auto-Saves to DB) ---
         function saveProductInternal() { 
             const name = document.getElementById('prod-name').value;
             const price = parseFloat(document.getElementById('prod-price').value);
-            
             if(!name || !price) return alert("Faltan datos"); 
-            
             const item = { 
                 id: editingIdx===-1 ? Date.now().toString() : SESSION.data.menu[currentCategory][editingIdx].id, 
-                name, 
-                description: document.getElementById('prod-desc').value, 
-                price, 
-                originalPrice: parseFloat(document.getElementById('prod-original').value)||null, 
-                image: document.getElementById('prod-img-url').value, 
-                tags: document.getElementById('prod-tags').value.split(',').filter(t=>t), 
-                groupId: document.getElementById('prod-group-select').value || null 
+                name, description: document.getElementById('prod-desc').value, price, originalPrice: parseFloat(document.getElementById('prod-original').value)||null, image: document.getElementById('prod-img-url').value, tags: document.getElementById('prod-tags').value.split(',').filter(t=>t), groupId: document.getElementById('prod-group-select').value || null 
             }; 
-            
-            if(editingIdx===-1) SESSION.data.menu[currentCategory].push(item); 
-            else SESSION.data.menu[currentCategory][editingIdx]=item; 
-            
-            closeProductModal(); 
-            renderMenuGrid(currentCategory);
-            
-            // Call API to persist changes immediately
-            saveDataToServer(false); // false = silent save (no big alert, maybe toast)
+            if(editingIdx===-1) SESSION.data.menu[currentCategory].push(item); else SESSION.data.menu[currentCategory][editingIdx]=item; 
+            closeProductModal(); renderMenuGrid(currentCategory); saveDataToServer(false);
         }
 
         function deleteProduct(cat, idx) { 
@@ -925,69 +1077,33 @@
         
         function editProduct(cat, idx) { currentCategory = cat; openProductModal(idx); }
 
-        // --- GLOBAL SAVE FUNCTION (USED BY BOTH BUTTON & AUTO-SAVE) ---
         async function saveDataToServer(showNotifications = true) {
              const btn = document.querySelector('button[onclick="saveChanges()"]');
              let originalText = "";
              
-             if(showNotifications && btn) {
-                 originalText = btn.innerHTML;
-                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-                 btn.disabled = true;
-             }
+             if(showNotifications && btn) { originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; btn.disabled = true; }
 
-             // We use SESSION.data.config as base, and override with DOM values IF we are in settings view or explicit save
-             // But simpler: just send current SESSION.data structure. 
-             // IMPORTANT: If we are in Menu view, the inputs in Settings view (hidden) might still hold correct values 
-             // because initDashboard populated them. Let's update SESSION config from DOM to be sure before sending.
-             
              const cfg = { ...SESSION.data.config };
-             // Update config object from DOM inputs
              cfg.name = document.getElementById('conf-name').value;
              cfg.businessType = document.getElementById('conf-type').value;
              cfg.whatsapp = document.getElementById('conf-whatsapp').value;
              cfg.address = document.getElementById('conf-address').value;
-             
              const latInput = document.getElementById('conf-lat').value;
              const lngInput = document.getElementById('conf-lng').value;
              if (latInput && lngInput) { cfg.coords = { lat: parseFloat(latInput), lng: parseFloat(lngInput) }; }
-             
              cfg.hours = { open: parseInt(document.getElementById('conf-open').value), close: parseInt(document.getElementById('conf-close').value) };
              cfg.heroImage = document.getElementById('conf-hero').value;
              cfg.highDemand = document.getElementById('conf-high-demand-active').checked;
              cfg.highDemandTime = document.getElementById('conf-high-demand-time').value;
-
-             cfg.categoryTitles = {
-                 promos: document.getElementById('cat-title-promos').value,
-                 especiales: document.getElementById('cat-title-especiales').value,
-                 clasicos: document.getElementById('cat-title-clasicos').value,
-                 extras: document.getElementById('cat-title-extras').value
-             };
+             cfg.categoryTitles = { promos: document.getElementById('cat-title-promos').value, especiales: document.getElementById('cat-title-especiales').value, clasicos: document.getElementById('cat-title-clasicos').value, extras: document.getElementById('cat-title-extras').value };
              
-             // Update session config
              SESSION.data.config = cfg;
 
              try {
-                const res = await fetch(`${API_URL}/api/shop/${SESSION.slug}`, { 
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'}, 
-                    body: JSON.stringify({ 
-                        password: SESSION.password, 
-                        data: { config: cfg, menu: SESSION.data.menu } 
-                    }) 
-                });
-                
+                const res = await fetch(`${API_URL}/api/shop/${SESSION.slug}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: SESSION.password, data: { config: cfg, menu: SESSION.data.menu } }) });
                 if (res.ok) { 
-                    if(showNotifications && btn) {
-                        btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Listo!'; 
-                        setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000); 
-                    }
-                    // Update category buttons UI in case names changed
-                    ['promos', 'especiales', 'clasicos', 'extras'].forEach(key => {
-                        const btn = document.getElementById(`btn-cat-${key}`);
-                        if (btn) btn.innerText = cfg.categoryTitles[key] || key.toUpperCase();
-                    });
-                    
+                    if(showNotifications && btn) { btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Listo!'; setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000); }
+                    ['promos', 'especiales', 'clasicos', 'extras'].forEach(key => { const btn = document.getElementById(`btn-cat-${key}`); if (btn) btn.innerText = cfg.categoryTitles[key] || key.toUpperCase(); });
                 } else { 
                     if(showNotifications && btn) { btn.innerHTML = 'Error'; btn.disabled = false; }
                     alert("Error al guardar en servidor.");
@@ -998,12 +1114,8 @@
             }
         }
 
-        // Wrapper for manual button click
-        function saveChanges() {
-            saveDataToServer(true);
-        }
+        function saveChanges() { saveDataToServer(true); }
         
-        // --- HELPERS (RESTAURADOS) ---
         async function parseMapLink() {
             const input = document.getElementById('map-link-input').value;
             if(!input) return alert("Ingresa un link de Google Maps");
@@ -1029,12 +1141,7 @@
             const div = document.createElement('div'); div.className="bg-white p-4 border flex flex-col items-center shadow-lg";
             if (style === 'card') { div.style.border = "4px solid #3b82f6"; div.style.borderRadius = "20px"; }
             else if (style === 'poster') { div.style.backgroundColor = "#111827"; div.style.color = "white"; div.style.borderRadius = "10px"; }
-            
-            div.innerHTML = `
-                ${style==='poster' ? `<div class="mb-4 text-xl font-bold text-yellow-400">${SESSION.data.config.name}</div>` : ''}
-                <div id="qrcode" class="${style==='poster'?'bg-white p-2 rounded':''}"></div>
-                <p class="mt-2 text-xs font-bold ${style==='poster'?'text-gray-400':'text-gray-600'}">${SESSION.data.config.name}</p>
-            `;
+            div.innerHTML = `${style==='poster' ? `<div class="mb-4 text-xl font-bold text-yellow-400">${SESSION.data.config.name}</div>` : ''}<div id="qrcode" class="${style==='poster'?'bg-white p-2 rounded':''}"></div><p class="mt-2 text-xs font-bold ${style==='poster'?'text-gray-400':'text-gray-600'}">${SESSION.data.config.name}</p>`;
             c.appendChild(div);
             new QRCode(div.querySelector("#qrcode"), { text: `https://iamenu.github.io/menuia/menu.html?slug=${SESSION.slug}`, width:150, height:150, colorDark: "#000000", colorLight: "#ffffff" });
         }
