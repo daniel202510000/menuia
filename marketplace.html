@@ -15,6 +15,12 @@
         .category-pill.active { background-color: #000; color: white; border-color: #000; }
         .shimmer { animation: shimmer 2s infinite linear; background: linear-gradient(to right, #f3f4f6 4%, #e5e7eb 25%, #f3f4f6 36%); background-size: 1000px 100%; }
         @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        
+        /* Modal Transitions */
+        .modal { transition: opacity 0.3s ease-in-out, visibility 0.3s; opacity: 0; visibility: hidden; }
+        .modal.active { opacity: 1; visibility: visible; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal.active .modal-content { transform: scale(1); }
     </style>
 </head>
 <body class="text-gray-800">
@@ -23,16 +29,39 @@
     <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center gap-2">
+                <!-- Logo -->
+                <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.reload()">
                     <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-lg">M</div>
                     <span class="font-bold text-xl tracking-tight">Menú<span class="text-blue-600">IA</span> Food</span>
                 </div>
-                <div class="hidden md:flex items-center gap-6">
-                    <a href="/register" class="text-sm font-medium text-gray-500 hover:text-gray-900">Registra tu Restaurante</a>
-                    <a href="/admin" class="bg-black text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-gray-800 transition">Ingresar</a>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center gap-4">
+                    <!-- User Login Button -->
+                    <button onclick="toggleUserModal()" class="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-full transition text-gray-700">
+                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div class="text-left leading-tight">
+                            <p class="text-[10px] text-gray-500 font-bold uppercase">Mi Cuenta</p>
+                            <p class="text-sm font-bold" id="nav-user-name">Ingresar</p>
+                        </div>
+                    </button>
+
+                    <div class="h-8 w-px bg-gray-200 mx-2"></div>
+
+                    <!-- Business Links -->
+                    <a href="/register" class="text-xs font-bold text-gray-500 hover:text-blue-600 transition uppercase tracking-wide">Vende aquí</a>
+                    <a href="/admin" class="bg-black text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-gray-800 transition shadow-lg shadow-gray-200">Soy Negocio</a>
                 </div>
+
                 <!-- Mobile Menu Button -->
-                <button class="md:hidden text-gray-500" onclick="window.location.href='/admin'"><i class="fa-solid fa-user"></i></button>
+                <div class="md:hidden flex items-center gap-3">
+                    <button onclick="toggleUserModal()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">
+                        <i class="fa-solid fa-user"></i>
+                    </button>
+                    <button class="text-gray-900 text-xl" onclick="window.location.href='/admin'"><i class="fa-solid fa-store"></i></button>
+                </div>
             </div>
         </div>
     </nav>
@@ -42,11 +71,11 @@
         <div class="max-w-3xl mx-auto text-center">
             <h1 class="text-3xl md:text-5xl font-bold text-gray-900 mb-6">Tus restaurantes favoritos,<br><span class="text-blue-600">a un clic de distancia.</span></h1>
             
-            <div class="relative max-w-xl mx-auto shadow-lg rounded-full">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <i class="fa-solid fa-search text-gray-400"></i>
+            <div class="relative max-w-xl mx-auto shadow-xl rounded-full group focus-within:ring-4 ring-blue-100 transition-all">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-search text-gray-400 group-focus-within:text-blue-500 transition"></i>
                 </div>
-                <input type="text" id="search-input" onkeyup="filterShops()" class="block w-full pl-11 pr-4 py-4 rounded-full border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" placeholder="Buscar por nombre (ej: Tacos, Sushi)...">
+                <input type="text" id="search-input" onkeyup="filterShops()" class="block w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:border-blue-500 outline-none text-sm font-medium placeholder-gray-400 transition" placeholder="¿Qué se te antoja hoy? (ej: Tacos, Sushi, Pizza)...">
             </div>
         </div>
     </div>
@@ -55,22 +84,22 @@
     <div class="bg-white border-b border-gray-200 sticky top-16 z-40 py-3 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar">
             <div class="flex gap-3 min-w-max pb-1">
-                <button onclick="filterCategory('all', this)" class="category-pill active px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2">
+                <button onclick="filterCategory('all', this)" class="category-pill active px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-utensils"></i> Todo
                 </button>
-                <button onclick="filterCategory('Sushi', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2">
+                <button onclick="filterCategory('Sushi', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                     🍣 Sushi
                 </button>
-                <button onclick="filterCategory('Tacos', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2">
+                <button onclick="filterCategory('Tacos', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                     🌮 Tacos
                 </button>
-                <button onclick="filterCategory('Pizza', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2">
+                <button onclick="filterCategory('Pizza', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                     🍕 Pizza
                 </button>
-                <button onclick="filterCategory('Hamburguesas', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2">
+                <button onclick="filterCategory('Hamburguesas', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                     🍔 Burgers
                 </button>
-                <button onclick="filterCategory('Cafeteria', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2">
+                <button onclick="filterCategory('Cafeteria', this)" class="category-pill px-4 py-2 rounded-full text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                     ☕ Café
                 </button>
             </div>
@@ -79,6 +108,11 @@
 
     <!-- Shop Grid -->
     <div class="max-w-7xl mx-auto px-4 py-8 min-h-screen">
+        <div class="flex justify-between items-end mb-6">
+            <h2 class="text-xl font-bold text-gray-800">Restaurantes cerca de ti</h2>
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide" id="shops-count">Cargando...</span>
+        </div>
+
         <div id="shops-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <!-- Loading Skeletons -->
             <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 h-64"><div class="h-32 shimmer"></div><div class="p-4 space-y-2"><div class="h-4 w-3/4 shimmer rounded"></div><div class="h-3 w-1/2 shimmer rounded"></div></div></div>
@@ -88,30 +122,180 @@
         </div>
         
         <div id="empty-state" class="hidden text-center py-20">
-            <i class="fa-solid fa-store-slash text-6xl text-gray-300 mb-4"></i>
-            <p class="text-xl text-gray-500 font-medium">No encontramos restaurantes con esa búsqueda.</p>
-            <button onclick="filterCategory('all', document.querySelector('.category-pill'))" class="mt-4 text-blue-600 font-bold hover:underline">Ver todos</button>
+            <div class="bg-gray-50 inline-block p-6 rounded-full mb-4">
+                <i class="fa-solid fa-store-slash text-4xl text-gray-300"></i>
+            </div>
+            <p class="text-lg text-gray-600 font-bold">No encontramos restaurantes.</p>
+            <p class="text-sm text-gray-400 mb-4">Intenta con otra categoría o búsqueda.</p>
+            <button onclick="filterCategory('all', document.querySelector('.category-pill'))" class="text-blue-600 font-bold text-sm hover:underline">Ver todos los restaurantes</button>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 py-8 mt-12">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-gray-500 text-sm">© 2024 MenúIA. La forma inteligente de comer.</p>
-            <div class="flex justify-center gap-4 mt-4">
-                <a href="/register" class="text-blue-600 text-sm font-bold hover:underline">Registrar Negocio</a>
-                <a href="/admin" class="text-gray-600 text-sm hover:underline">Acceso Socios</a>
+    <footer class="bg-white border-t border-gray-200 py-12 mt-12">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="col-span-1 md:col-span-2">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-lg">M</div>
+                    <span class="font-bold text-xl tracking-tight">Menú<span class="text-blue-600">IA</span> Food</span>
+                </div>
+                <p class="text-gray-500 text-sm leading-relaxed max-w-xs">La plataforma inteligente que conecta a los mejores restaurantes locales contigo. Pedir comida nunca fue tan fácil.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-4">Descubre</h4>
+                <ul class="space-y-2 text-sm text-gray-500">
+                    <li><a href="#" class="hover:text-blue-600">Restaurantes</a></li>
+                    <li><a href="#" class="hover:text-blue-600">Categorías</a></li>
+                    <li><a href="#" class="hover:text-blue-600">Ofertas</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-gray-900 mb-4">Negocios</h4>
+                <ul class="space-y-2 text-sm text-gray-500">
+                    <li><a href="/register" class="hover:text-blue-600">Registrar Restaurante</a></li>
+                    <li><a href="/admin" class="hover:text-blue-600">Panel de Control</a></li>
+                    <li><a href="#" class="hover:text-blue-600">Ayuda para Socios</a></li>
+                </ul>
             </div>
         </div>
+        <div class="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-gray-100 text-center">
+            <p class="text-gray-400 text-xs">© 2024 MenúIA. Todos los derechos reservados.</p>
+        </div>
     </footer>
+
+    <!-- MODAL DE USUARIO (LOGIN/REGISTRO) -->
+    <div id="user-modal" class="modal fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+        <div class="modal-content bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+            <div class="relative bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-center text-white">
+                <button onclick="toggleUserModal()" class="absolute top-4 right-4 text-white/70 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fa-solid fa-user text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold">¡Hola! 👋</h3>
+                <p class="text-xs text-blue-100">Inicia sesión para pedir más rápido.</p>
+            </div>
+            
+            <div class="p-6">
+                <form onsubmit="event.preventDefault(); saveUser();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Completo</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa-solid fa-user"></i></span>
+                            <input type="text" id="login-name" class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" placeholder="Ej: Juan Pérez" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Celular / WhatsApp</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa-solid fa-phone"></i></span>
+                            <input type="tel" id="login-phone" class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" placeholder="Ej: 5512345678" required>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección (Opcional)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa-solid fa-map-pin"></i></span>
+                            <textarea id="login-address" class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" placeholder="Calle, Número, Colonia..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Contraseña (Para recordar)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-400"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="login-pass" class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" placeholder="********" required>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1 text-right">Se guardará en este dispositivo.</p>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
+                        Guardar y Continuar
+                    </button>
+                </form>
+                
+                <div class="mt-4 pt-4 border-t border-gray-100 text-center" id="logout-section" style="display:none;">
+                     <button onclick="logoutUser()" class="text-xs text-red-500 font-bold hover:underline">Cerrar Sesión / Borrar Datos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 z-[70]">
+        <i class="fa-solid fa-circle-check text-green-400"></i>
+        <span class="text-sm font-medium" id="toast-message">Acción completada</span>
+    </div>
 
     <script>
         const API_URL = "https://menuia.onrender.com";
         let ALL_SHOPS = [];
         let CURRENT_FILTER = 'all';
+        let USER_DATA = JSON.parse(localStorage.getItem('menuia_user_data')) || null;
 
-        document.addEventListener('DOMContentLoaded', loadShops);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadShops();
+            initUser();
+        });
 
+        // --- USER AUTH LOGIC ---
+        function initUser() {
+            if (USER_DATA) {
+                document.getElementById('nav-user-name').innerText = `Hola, ${USER_DATA.name.split(' ')[0]}`;
+                // Pre-fill modal fields
+                document.getElementById('login-name').value = USER_DATA.name;
+                document.getElementById('login-phone').value = USER_DATA.phone;
+                document.getElementById('login-address').value = USER_DATA.address || '';
+                document.getElementById('login-pass').value = USER_DATA.pass || '';
+                document.getElementById('logout-section').style.display = 'block';
+            } else {
+                document.getElementById('nav-user-name').innerText = "Ingresar";
+                document.getElementById('logout-section').style.display = 'none';
+            }
+        }
+
+        function toggleUserModal() {
+            const m = document.getElementById('user-modal');
+            m.classList.toggle('active');
+        }
+
+        function saveUser() {
+            const name = document.getElementById('login-name').value;
+            const phone = document.getElementById('login-phone').value;
+            const address = document.getElementById('login-address').value;
+            const pass = document.getElementById('login-pass').value;
+
+            if (name && phone && pass) {
+                USER_DATA = { name, phone, address, pass };
+                localStorage.setItem('menuia_user_data', JSON.stringify(USER_DATA));
+                initUser();
+                toggleUserModal();
+                showToast("¡Datos guardados! 🎉");
+            } else {
+                alert("Por favor completa nombre, teléfono y contraseña.");
+            }
+        }
+
+        function logoutUser() {
+            if(confirm("¿Estás seguro? Se borrarán tus datos guardados en este navegador.")) {
+                localStorage.removeItem('menuia_user_data');
+                USER_DATA = null;
+                // Clear inputs
+                document.getElementById('login-name').value = '';
+                document.getElementById('login-phone').value = '';
+                document.getElementById('login-address').value = '';
+                document.getElementById('login-pass').value = '';
+                
+                initUser();
+                toggleUserModal();
+                showToast("Sesión cerrada");
+            }
+        }
+
+        // --- SHOP LOGIC ---
         async function loadShops() {
             try {
                 const res = await fetch(`${API_URL}/api/shops/public`);
@@ -119,6 +303,7 @@
                 
                 if(data.success) {
                     ALL_SHOPS = data.shops;
+                    document.getElementById('shops-count').innerText = `${ALL_SHOPS.length} Restaurantes`;
                     renderShops(ALL_SHOPS);
                 } else {
                     document.getElementById('shops-grid').innerHTML = '<p class="col-span-full text-center text-red-500">Error al cargar tiendas.</p>';
@@ -146,8 +331,8 @@
             grid.innerHTML = shops.map(shop => {
                 const isOpen = isShopOpen(shop.config?.hours);
                 const statusBadge = isOpen 
-                    ? '<span class="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">ABIERTO</span>'
-                    : '<span class="absolute top-3 right-3 bg-gray-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">CERRADO</span>';
+                    ? '<span class="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1"><i class="fa-solid fa-clock"></i> ABIERTO</span>'
+                    : '<span class="absolute top-3 right-3 bg-gray-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1"><i class="fa-solid fa-lock"></i> CERRADO</span>';
                 
                 const type = shop.config?.businessType || 'Restaurante';
                 const img = shop.config?.heroImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=500';
@@ -158,20 +343,23 @@
                 return `
                 <a href="${link}" target="_blank" class="block shop-card bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:border-blue-200 relative group">
                     <div class="h-40 overflow-hidden relative bg-gray-100">
-                        <img src="${img}" class="w-full h-full object-cover transition duration-700 group-hover:scale-110" loading="lazy">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
+                        <img src="${img}" class="w-full h-full object-cover transition duration-700 group-hover:scale-110" loading="lazy" onerror="this.src='https://via.placeholder.com/500x300?text=Sin+Imagen'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
                         ${statusBadge}
+                        <div class="absolute bottom-3 left-3 text-white">
+                             <div class="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold border border-white/30 inline-block mb-1">${type}</div>
+                        </div>
                     </div>
                     <div class="p-4">
                         <div class="flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-gray-900 text-lg truncate pr-2">${shop.config?.name || 'Tienda Sin Nombre'}</h3>
-                            <div class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">${type}</div>
+                            <h3 class="font-bold text-gray-900 text-lg truncate pr-2 w-full">${shop.config?.name || 'Tienda Sin Nombre'}</h3>
                         </div>
-                        <p class="text-xs text-gray-500 mb-3 truncate"><i class="fa-solid fa-location-dot mr-1"></i> ${shop.config?.address || 'Ubicación no disponible'}</p>
+                        <p class="text-xs text-gray-500 mb-4 truncate flex items-center gap-1"><i class="fa-solid fa-location-dot text-gray-300"></i> ${shop.config?.address || 'Ubicación no disponible'}</p>
                         
                         <div class="flex items-center gap-2 text-xs text-gray-400 border-t border-gray-100 pt-3">
-                            <span class="bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">Ver Menú <i class="fa-solid fa-arrow-right ml-1"></i></span>
-                            ${shop.config?.highDemand ? '<span class="text-orange-500 font-bold ml-auto"><i class="fa-solid fa-fire"></i> Alta Demanda</span>' : ''}
+                            <span class="text-blue-600 font-bold group-hover:underline">Ver Menú</span>
+                            <i class="fa-solid fa-arrow-right text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:translate-x-1 transform duration-300"></i>
+                            ${shop.config?.highDemand ? '<span class="text-orange-500 font-bold ml-auto flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-fire"></i> Alta Demanda</span>' : ''}
                         </div>
                     </div>
                 </a>`;
@@ -182,10 +370,12 @@
             CURRENT_FILTER = cat;
             
             // UI Update
-            document.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active', 'bg-black', 'text-white', 'border-black'));
-            document.querySelectorAll('.category-pill').forEach(b => b.classList.add('bg-white', 'text-gray-800', 'border-gray-200'));
+            document.querySelectorAll('.category-pill').forEach(b => {
+                b.classList.remove('active', 'bg-black', 'text-white', 'border-black', 'shadow-md');
+                b.classList.add('bg-white', 'text-gray-800', 'border-gray-200');
+            });
             
-            btn.classList.add('active', 'bg-black', 'text-white', 'border-black');
+            btn.classList.add('active', 'bg-black', 'text-white', 'border-black', 'shadow-md');
             btn.classList.remove('bg-white', 'text-gray-800', 'border-gray-200');
 
             filterShops();
@@ -211,7 +401,20 @@
         function isShopOpen(hours) {
             if(!hours) return true; // Default open if no hours set
             const h = new Date().getHours();
+            // Simple check: open hour <= current hour < close hour
+            // Note: This simple logic assumes hours are in 0-23 format and closing is same day (e.g. not 2am next day)
+            // For production, more complex time handling might be needed.
             return h >= (hours.open || 0) && h < (hours.close || 24);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+            }, 3000);
         }
     </script>
 </body>
