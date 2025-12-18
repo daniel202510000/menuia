@@ -36,6 +36,10 @@
         .ticket-item { animation: slideIn 0.2s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
+        /* Filtros Monitor */
+        .filter-btn { transition: all 0.2s; }
+        .filter-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
@@ -292,12 +296,15 @@
 
                 <!-- VIEW: ORDERS MONITOR (MODIFICADO) -->
                 <div id="view-orders" class="view-section hidden fade-enter">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Monitor de Pedidos</h2>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Gestión de Pedidos</h2>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-150px)]">
                         <div class="p-4 border-b border-gray-100 flex gap-2 overflow-x-auto bg-gray-50">
-                            <button onclick="renderOrdersTable('all')" class="px-4 py-2 text-xs font-bold rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700">Todos</button>
-                            <button onclick="renderOrdersTable('pending')" class="px-4 py-2 text-xs font-bold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">Pendientes</button>
-                            <button onclick="renderOrdersTable('completed')" class="px-4 py-2 text-xs font-bold rounded-full bg-green-100 text-green-700 border border-green-200">Completados</button>
+                            <button onclick="renderOrdersTable('active')" id="btn-monitor-active" class="filter-btn active px-4 py-2 text-xs font-bold rounded-full border border-blue-200 text-blue-700">
+                                <i class="fa-solid fa-pulse mr-1"></i> Monitor Activo
+                            </button>
+                            <button onclick="renderOrdersTable('history')" id="btn-monitor-history" class="filter-btn px-4 py-2 text-xs font-bold rounded-full bg-white hover:bg-gray-100 text-gray-500 border border-gray-200">
+                                <i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial Semanal
+                            </button>
                         </div>
                         <div class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="orders-list-container">
                             <div class="text-center text-gray-400 mt-10 w-full col-span-full">Cargando pedidos...</div>
@@ -565,10 +572,11 @@
             <!-- Footer Actions -->
             <div class="p-4 bg-white border-t border-gray-200 flex flex-col gap-3">
                 <p class="text-xs font-bold text-gray-400 uppercase text-center mb-1">Cambiar Estado del Pedido</p>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="grid grid-cols-5 gap-2"> <!-- CHANGED TO 5 COLS -->
                     <button onclick="updateOrderStatus('pending')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-gray-50 border-gray-300 text-gray-500">Pendiente</button>
                     <button onclick="updateOrderStatus('preparing')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-orange-50 border-orange-200 text-orange-600">Cocina</button>
                     <button onclick="updateOrderStatus('ready')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-blue-50 border-blue-200 text-blue-600">Listo</button>
+                    <button onclick="updateOrderStatus('delivering')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-purple-50 border-purple-200 text-purple-600">En Camino</button>
                     <button onclick="updateOrderStatus('completed')" class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-green-50 border-green-200 text-green-600">Entregado</button>
                 </div>
             </div>
@@ -603,6 +611,7 @@
         let posCart = [], posOrderType = 'mesa', pendingPosItem = null;
         let ordersHistory = []; 
         let currentDetailOrder = null; 
+        let currentOrderFilter = 'active'; // Default view
 
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
@@ -614,7 +623,7 @@
             if(viewId === 'menu') { renderGroups(); renderMenuGrid(currentCategory); }
             if(viewId === 'qr') renderQR('simple');
             if(viewId === 'pos') initPOS();
-            if(viewId === 'orders') fetchAndRenderOrders('all'); 
+            if(viewId === 'orders') fetchAndRenderOrders(currentOrderFilter); 
             
             const saveBtn = document.querySelector('button[onclick="saveChanges()"]');
             if(saveBtn) {
@@ -713,7 +722,7 @@
 
         socket.on('new-order-saved', () => {
             if(!document.getElementById('view-orders').classList.contains('hidden')) {
-                fetchAndRenderOrders('all');
+                fetchAndRenderOrders(currentOrderFilter);
             }
         });
 
@@ -836,11 +845,22 @@
             
             clearPosCart(); 
             document.getElementById('pos-customer-ref').value = ""; 
-            setTimeout(()=>fetchAndRenderOrders('all'),500); 
+            setTimeout(()=>fetchAndRenderOrders('active'),500); 
         }
 
         // --- ORDERS MONITOR (ACTUALIZADO) ---
         async function fetchAndRenderOrders(filter) {
+            currentOrderFilter = filter;
+            
+            // Actualizar botones de filtro
+            document.getElementById('btn-monitor-active').className = filter === 'active' 
+                ? "filter-btn active px-4 py-2 text-xs font-bold rounded-full border border-blue-200 text-blue-700 bg-blue-100" 
+                : "filter-btn px-4 py-2 text-xs font-bold rounded-full bg-white hover:bg-gray-100 text-gray-500 border border-gray-200";
+            
+            document.getElementById('btn-monitor-history').className = filter === 'history' 
+                ? "filter-btn active px-4 py-2 text-xs font-bold rounded-full border border-blue-200 text-blue-700 bg-blue-100" 
+                : "filter-btn px-4 py-2 text-xs font-bold rounded-full bg-white hover:bg-gray-100 text-gray-500 border border-gray-200";
+
             const container = document.getElementById('orders-list-container');
             container.innerHTML = `<div class="text-center text-gray-400 mt-10 col-span-full"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</div>`;
             try {
@@ -849,15 +869,33 @@
                 if(data.success) { ordersHistory = data.orders; renderOrders(filter); }
             } catch(e) { container.innerHTML = `<div class="text-center text-red-400 mt-10 col-span-full">Error cargando pedidos</div>`; }
         }
-        function renderOrdersTable(f) { if(ordersHistory.length===0) fetchAndRenderOrders(f); else renderOrders(f); }
+        function renderOrdersTable(f) { fetchAndRenderOrders(f); }
         
         function renderOrders(f) {
             const c = document.getElementById('orders-list-container');
-            let orders = ordersHistory;
-            if(f==='pending') orders=orders.filter(o=>o.status==='pending' || o.status==='preparing'); 
-            if(f==='completed') orders=orders.filter(o=>o.status==='completed' || o.status==='delivering' || o.status==='ready');
+            let orders = [];
+
+            // Lógica de Filtros Estricta
+            if(f === 'active') {
+                // Monitor: Solo pedidos NO completados
+                orders = ordersHistory.filter(o => o.status !== 'completed');
+            } else if(f === 'history') {
+                // Historial: Solo Completados de la semana actual (Lunes a Lunes)
+                const startOfWeek = moment().startOf('isoWeek'); // Lunes 00:00 de esta semana
+                orders = ordersHistory.filter(o => {
+                    const isCompleted = o.status === 'completed';
+                    const isRecent = moment(o.createdAt).isSameOrAfter(startOfWeek);
+                    return isCompleted && isRecent;
+                });
+            }
             
-            if(orders.length===0) { c.innerHTML = `<div class="text-center text-gray-400 mt-10 col-span-full">No hay pedidos en esta categoría.</div>`; return; }
+            if(orders.length===0) { 
+                c.innerHTML = `<div class="text-center text-gray-400 mt-10 col-span-full flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check text-4xl opacity-20"></i>
+                    <p>No hay pedidos en esta sección.</p>
+                </div>`; 
+                return; 
+            }
             
             // RENDERING CARDS MINIMALISTAS
             c.innerHTML = orders.map(o => {
@@ -866,6 +904,7 @@
                 if(o.status === 'pending') { badgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200'; statusIcon = 'fa-clock'; }
                 if(o.status === 'preparing') { badgeClass = 'bg-orange-100 text-orange-700 border-orange-200'; statusIcon = 'fa-fire-burner'; }
                 if(o.status === 'ready') { badgeClass = 'bg-blue-100 text-blue-700 border-blue-200'; statusIcon = 'fa-box-open'; }
+                if(o.status === 'delivering') { badgeClass = 'bg-purple-100 text-purple-700 border-purple-200'; statusIcon = 'fa-motorcycle'; } 
                 if(o.status === 'completed') { badgeClass = 'bg-green-100 text-green-700 border-green-200'; statusIcon = 'fa-check-circle'; }
 
                 const safeOrder = JSON.stringify(o).replace(/"/g, '&quot;');
@@ -912,6 +951,7 @@
                 'pending': '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">Pendiente</span>',
                 'preparing': '<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">En Cocina</span>',
                 'ready': '<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">Listo para Entrega</span>',
+                'delivering': '<span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold border border-purple-200">En Camino</span>', 
                 'completed': '<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Completado/Entregado</span>'
             };
             document.getElementById('detail-status-badge').innerHTML = statusMap[order.status] || order.status;
@@ -976,8 +1016,13 @@
                 
                 if (res.ok) {
                     currentDetailOrder.status = newStatus;
-                    openOrderDetails(currentDetailOrder); // Refresh modal UI
-                    fetchAndRenderOrders('all'); // Refresh list behind
+                    // Si se completa y estamos en vista activa, se "borrará" visualmente al refrescar
+                    if (newStatus === 'completed' && currentOrderFilter === 'active') {
+                        document.getElementById('order-detail-modal').classList.add('hidden');
+                    } else {
+                        openOrderDetails(currentDetailOrder); // Refresh modal UI
+                    }
+                    fetchAndRenderOrders(currentOrderFilter); // Refresh list behind
                 } else {
                     alert("Error al actualizar");
                 }
