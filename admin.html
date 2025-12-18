@@ -629,7 +629,6 @@
             // Products Count
             const prodCount = (SESSION.data.menu.promos?.length||0) + (SESSION.data.menu.especiales?.length||0) + 
                               (SESSION.data.menu.clasicos?.length||0) + (SESSION.data.menu.extras?.length||0);
-            document.getElementById('stat-products-count').innerText = prodCount;
             
             const storeUrl = `https://iamenu.github.io/menuia/menu.html?slug=${SESSION.slug}`;
             document.getElementById('sidebar-link-store').href = storeUrl;
