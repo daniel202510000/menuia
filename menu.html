@@ -424,13 +424,19 @@
                     ACTIVE_ORDER.status = data.status;
                     localStorage.setItem('menuia_active_order_' + SHOP_SLUG, JSON.stringify(ACTIVE_ORDER));
                     
-                    updateTrackerUI(data.status);
-                    showToast(`Tu pedido está: ${translateStatus(data.status)}`);
-                    
-                    // Si hay un cambio y el usuario tiene sesión, mostramos indicador visual
-                    if(USER_DATA) {
-                        const ind = document.getElementById('nav-order-indicator');
-                        if(ind) ind.classList.remove('hidden');
+                    // LÓGICA DE FINALIZACIÓN
+                    if (data.status === 'completed') {
+                        showToast("¡Pedido Entregado! Gracias por tu compra.");
+                        // Re-evaluar visibilidad inmediatamente (esto ocultará la barra)
+                        checkActiveOrder();
+                    } else {
+                        updateTrackerUI(data.status);
+                        showToast(`Tu pedido está: ${translateStatus(data.status)}`);
+                        // Actualizar indicador
+                        if(USER_DATA) {
+                            const ind = document.getElementById('nav-order-indicator');
+                            if(ind) ind.classList.remove('hidden');
+                        }
                     }
                 }
             });
@@ -453,7 +459,8 @@
         // --- TRACKER LOGIC (AHORA DENTRO DEL PERFIL DE USUARIO) ---
         function checkActiveOrder() {
             // Solo mostramos rastreo si hay usuario logueado Y pedido activo QUE CORRESPONDA AL USUARIO
-            if (ACTIVE_ORDER && USER_DATA && ACTIVE_ORDER.customerPhone === USER_DATA.phone) {
+            // Y SI EL ESTADO NO ES 'completed' (para que desaparezca al final)
+            if (ACTIVE_ORDER && USER_DATA && ACTIVE_ORDER.customerPhone === USER_DATA.phone && ACTIVE_ORDER.status !== 'completed') {
                 document.getElementById('active-order-card').classList.remove('hidden');
                 document.getElementById('nav-order-indicator').classList.remove('hidden'); 
                 updateTrackerUI(ACTIVE_ORDER.status);
