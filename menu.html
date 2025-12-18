@@ -67,7 +67,34 @@
 
     <!-- Header / Navbar -->
     <nav class="bg-black/95 backdrop-blur-md shadow-lg fixed w-full z-50 top-0 border-b border-gray-800">
+        
+        <!-- BARRA DE RASTREO SUPERIOR (FIXED VISIBILITY) -->
+        <div id="tracker-header" class="hidden bg-gray-900 border-b border-gray-700 w-full animate-fade-in">
+            <div class="max-w-7xl mx-auto px-4 py-2">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        </span>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none" id="header-order-id">PEDIDO #...</span>
+                            <span class="text-xs font-bold text-white leading-tight truncate" id="header-tracker-status">Calculando...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 max-w-[150px] sm:max-w-[200px] flex items-center gap-2">
+                        <div class="h-1.5 flex-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div id="header-progress-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-out" style="width: 5%"></div>
+                        </div>
+                        <button onclick="toggleUserModal()" class="text-[10px] text-blue-400 font-bold hover:text-white whitespace-nowrap">Ver <i class="fa-solid fa-chevron-right ml-0.5"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="status-banner" class="text-white text-center py-1 text-xs font-bold tracking-wider uppercase transition-colors duration-300"></div>
+        
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-14">
                 <div class="flex items-center gap-2">
@@ -229,7 +256,7 @@
                     <h3 class="font-bold text-lg text-gray-800" id="display-user-name">Usuario</h3>
                     <p class="text-sm text-gray-500 mb-4" id="display-user-phone">...</p>
                     
-                    <!-- RASTREO INTEGRADO EN CUENTA DE USUARIO -->
+                    <!-- RASTREO INTEGRADO EN CUENTA DE USUARIO (DETALLE) -->
                     <div id="active-order-card" class="hidden mb-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-left">
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-bold text-gray-700 text-xs uppercase flex items-center gap-1"><i class="fa-solid fa-motorcycle text-blue-500"></i> Pedido Activo</h4>
@@ -383,9 +410,8 @@
             
             // ESCUCHAR NUEVOS PEDIDOS (Sincronización ID Real)
             socket.on('order-created-client', (order) => {
-                // VERIFICACIÓN ESTRICTA: El pedido solo pertenece al usuario si los teléfonos coinciden
-                // Si el usuario está logueado, DEBE coincidir con USER_DATA.phone
-                // Si es invitado (ACTIVE_ORDER es TEMP), debe coincidir con el teléfono que ingresó
+                // VERIFICACIÓN: El pedido pertenece al usuario si los teléfonos coinciden (si está logueado)
+                // O si es un usuario invitado que acaba de crear el pedido (por lo que ACTIVE_ORDER local existe y coincide)
                 
                 let isMyOrder = false;
 
@@ -395,7 +421,7 @@
                         isMyOrder = true;
                     }
                 } else {
-                    // Si soy invitado, uso la lógica de pedido temporal activo
+                    // Si soy invitado (NO USER_DATA), confío en que el pedido temporal que tengo localmente es el mío
                     if (ACTIVE_ORDER && ACTIVE_ORDER._id.startsWith('TEMP-') && ACTIVE_ORDER.customerPhone === order.customerPhone) {
                         isMyOrder = true;
                     }
@@ -413,10 +439,9 @@
 
             // ESCUCHAR ACTUALIZACIONES DE ESTADO
             socket.on('order-status-updated', (data) => {
-                // Solo actualizamos si tenemos el pedido activo correcto
+                // Solo actualizamos si tenemos el pedido activo correcto localmente
                 if (ACTIVE_ORDER && data.orderId === ACTIVE_ORDER._id) {
                     // VALIDACIÓN ADICIONAL: Si estoy logueado, me aseguro que este pedido siga siendo mio (por teléfono)
-                    // Esto evita ver pedidos "viejos" de otros usuarios si se comparte dispositivo, aunque localStorage ayuda.
                     if (USER_DATA && ACTIVE_ORDER.customerPhone !== USER_DATA.phone) {
                         return; // No es mi pedido actual de esta sesión
                     }
@@ -432,11 +457,6 @@
                     } else {
                         updateTrackerUI(data.status);
                         showToast(`Tu pedido está: ${translateStatus(data.status)}`);
-                        // Actualizar indicador
-                        if(USER_DATA) {
-                            const ind = document.getElementById('nav-order-indicator');
-                            if(ind) ind.classList.remove('hidden');
-                        }
                     }
                 }
             });
@@ -456,17 +476,33 @@
             checkActiveOrder();
         });
 
-        // --- TRACKER LOGIC (AHORA DENTRO DEL PERFIL DE USUARIO) ---
+        // --- TRACKER LOGIC (CORREGIDO PARA INVITADOS) ---
         function checkActiveOrder() {
-            // Solo mostramos rastreo si hay usuario logueado Y pedido activo QUE CORRESPONDA AL USUARIO
-            // Y SI EL ESTADO NO ES 'completed' (para que desaparezca al final)
-            if (ACTIVE_ORDER && USER_DATA && ACTIVE_ORDER.customerPhone === USER_DATA.phone && ACTIVE_ORDER.status !== 'completed') {
-                document.getElementById('active-order-card').classList.remove('hidden');
-                document.getElementById('nav-order-indicator').classList.remove('hidden'); 
+            // Lógica de visibilidad corregida:
+            // 1. Debe haber un pedido activo (ACTIVE_ORDER)
+            // 2. El estado NO debe ser 'completed'
+            // 3. SI hay usuario logueado (USER_DATA), el teléfono debe coincidir.
+            // 4. SI NO hay usuario logueado (Invitado), confiamos en la existencia de ACTIVE_ORDER local.
+            
+            const isGuestOrder = ACTIVE_ORDER && !USER_DATA; 
+            const isUserOrder = ACTIVE_ORDER && USER_DATA && ACTIVE_ORDER.customerPhone === USER_DATA.phone;
+            const isNotCompleted = ACTIVE_ORDER && ACTIVE_ORDER.status !== 'completed';
+
+            const shouldShow = (isGuestOrder || isUserOrder) && isNotCompleted;
+            
+            const banner = document.getElementById('tracker-header');
+            const card = document.getElementById('active-order-card');
+            const indicator = document.getElementById('nav-order-indicator');
+            
+            if (shouldShow) {
+                banner.classList.remove('hidden');
+                card.classList.remove('hidden');
+                indicator.classList.remove('hidden');
                 updateTrackerUI(ACTIVE_ORDER.status);
             } else {
-                document.getElementById('active-order-card').classList.add('hidden');
-                document.getElementById('nav-order-indicator').classList.add('hidden');
+                banner.classList.add('hidden');
+                card.classList.add('hidden');
+                indicator.classList.add('hidden');
             }
         }
 
@@ -482,9 +518,8 @@
         }
 
         function updateTrackerUI(status) {
-            // Si no hay usuario logueado, no actualizamos UI (seguridad visual)
-            if(!USER_DATA) return;
-
+            // Actualizar UI incluso si es invitado (quitamos el return anticipado)
+            
             const steps = ['pending', 'preparing', 'ready', 'delivering'];
             let activeIndex = -1;
             if (status === 'pending') activeIndex = 0;
@@ -492,18 +527,33 @@
             if (status === 'ready') activeIndex = 2;
             if (status === 'delivering' || status === 'completed') activeIndex = 3;
 
-            const txtTitle = document.getElementById('tracker-status-text');
-            const txtDesc = document.getElementById('tracker-status-desc');
-            const orderIdDisp = document.getElementById('tracker-order-id');
+            // Update both HEADER BANNER and MODAL CARD
+            const displayId = `PEDIDO #${(ACTIVE_ORDER.dailyId || ACTIVE_ORDER._id || '...').toString().slice(-6).toUpperCase()}`;
+            const statusText = translateStatus(status);
             
-            if(ACTIVE_ORDER) orderIdDisp.innerText = `Orden #${(ACTIVE_ORDER.dailyId || ACTIVE_ORDER._id || '...').toString().slice(-6).toUpperCase()}`;
+            // 1. Header Banner Update
+            document.getElementById('header-order-id').innerText = displayId;
+            document.getElementById('header-tracker-status').innerText = statusText;
+            
+            let percentage = 5;
+            if(status === 'pending') percentage = 25;
+            else if(status === 'preparing') percentage = 50;
+            else if(status === 'ready') percentage = 75;
+            else if(status === 'delivering') percentage = 90;
+            
+            document.getElementById('header-progress-bar').style.width = `${percentage}%`;
 
-            if(status === 'pending') { txtTitle.innerText = "Pedido Confirmado"; txtDesc.innerText = "Hemos recibido tu orden."; }
-            else if(status === 'preparing') { txtTitle.innerText = "En la Cocina 🔥"; txtDesc.innerText = "Preparando tus platillos."; }
-            else if(status === 'ready') { txtTitle.innerText = "¡Pedido Listo!"; txtDesc.innerText = "Listo para entrega/retiro."; }
-            else if(status === 'delivering') { txtTitle.innerText = "En Camino 🛵"; txtDesc.innerText = "El repartidor va en camino."; }
-            else if(status === 'completed') { txtTitle.innerText = "Entregado ✅"; txtDesc.innerText = "¡Gracias por tu compra!"; }
+            // 2. Modal Card Update
+            document.getElementById('tracker-status-text').innerText = statusText;
+            document.getElementById('tracker-order-id').innerText = displayId;
+            
+            let desc = "Hemos recibido tu orden.";
+            if(status === 'preparing') desc = "Preparando tus platillos.";
+            else if(status === 'ready') desc = "Listo para entrega/retiro.";
+            else if(status === 'delivering') desc = "El repartidor va en camino.";
+            document.getElementById('tracker-status-desc').innerText = desc;
 
+            // Modal Steps Visuals
             for (let i = 0; i < steps.length; i++) {
                 const s = steps[i];
                 const el = document.getElementById(`step-${s}`);
@@ -984,4 +1034,4 @@
         function rate(tags,pts){ allItems.forEach(i=>{ const t=(i.name+' '+(i.tags||[]).join(' ')).toLowerCase(); tags.forEach(tag=>{ if(t.includes(tag)) aiScores[i.name]+=pts; }); }); }
     </script>
 </body>
-</html>
+    </html>
