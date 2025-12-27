@@ -420,8 +420,8 @@
                         <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm">IA Chef</h3>
-                        <p class="text-[10px] text-blue-500 flex items-center gap-1"><span class="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span> En línea</p>
+                        <h3 class="font-bold text-slate-800 text-sm">IA Chef (Real)</h3>
+                        <p class="text-[10px] text-blue-500 flex items-center gap-1"><span class="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span> En línea con Gemini</p>
                     </div>
                 </div>
                 <button onclick="toggleAI()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
@@ -432,9 +432,15 @@
                 <!-- Messages will appear here -->
             </div>
             
-            <!-- Input Area (Simulated) -->
+            <!-- Input Area (REAL TEXT INPUT) -->
             <div class="p-4 bg-white border-t border-gray-100 z-10">
-                <div class="text-[10px] text-center text-gray-400 mb-2">Potenciado por MenuIA Neural Engine™</div>
+                <form id="ai-chat-form" onsubmit="event.preventDefault(); handleChatSubmit();" class="flex gap-2">
+                    <input type="text" id="ai-user-input" placeholder="Pregunta algo (ej: ¿Qué pido si tengo hambre?)" class="flex-1 border border-gray-200 bg-gray-50 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition">
+                    <button type="submit" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition shadow-md">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </form>
+                <div class="text-[10px] text-center text-gray-400 mt-2">Potenciado por Google Gemini™</div>
             </div>
         </div>
     </div>
@@ -1034,117 +1040,77 @@
         }
         function resetIdleTimer() { clearTimeout(idleTimer); if(!idleWarningShown) idleTimer=setTimeout(()=>{showToast("💡 ¿No te decides? Prueba nuestra IA Chef"); idleWarningShown=true}, 20000); }
         
-        // --- ADVANCED AI CHATBOT (NEURAL ENGINE) ---
-        // Enhanced to support "Weighted" preferences
+        // --- REAL AI CHATBOT (GEMINI INTEGRATION) ---
+        // Replaced Simulated Neural Engine with Real API Calls
         
-        let aiState = { step: 0, scores: {} };
-        const questions = [
-            { id: 'mood', text: "¿Cuál es tu mood hoy?", opts: [
-                { txt: "😎 Relax / Chill", tags: ['clasicos', 'comfort'], w: 2 },
-                { txt: "💪 Fitness / Ligero", tags: ['extras', 'salad', 'light'], w: 3 },
-                { txt: "🎉 Fiesta / Hambre", tags: ['promos', 'share', 'heavy'], w: 2 }
-            ]},
-            { id: 'taste', text: "¿Qué se te antoja más?", opts: [
-                { txt: "🌶️ Algo Picosito", tags: ['spicy', 'hot'], w: 3 },
-                { txt: "🍣 Fresco / Sushi", tags: ['sushi', 'fresh', 'cold'], w: 3 },
-                { txt: "🍖 Carnívoro", tags: ['meat', 'heavy'], w: 2 }
-            ]}
-        ];
-
         function toggleAI() { 
             const m=document.getElementById('ai-modal'); 
             m.classList.toggle('active'); 
-            if(m.classList.contains('active')) startAIChat(); 
+            if(m.classList.contains('active')) {
+                // Initial greeting if empty
+                const c = document.getElementById('chat-container');
+                if(c.innerHTML === '') {
+                    addMsg("¡Hola! Soy tu Chef Virtual con IA real 🤖. ¿Qué se te antoja hoy?", true);
+                }
+            } 
         }
 
-        function startAIChat() {
-            const c=document.getElementById('chat-container'); c.innerHTML=''; 
-            // Reset scores
-            allItems.forEach(i => aiState.scores[i.name] = 0);
-            aiState.step = 0;
+        async function handleChatSubmit() {
+            const input = document.getElementById('ai-user-input');
+            const userMsg = input.value.trim();
+            if(!userMsg) return;
             
-            // Initial Greeting based on Time
-            const h = new Date().getHours();
-            let greeting = "¡Hola! Soy tu Chef Virtual 🤖.";
-            if(h < 12) greeting += " ¿Buscas desayunar rico?";
-            else if(h > 18) greeting += " ¿Cenamos algo delicioso?";
+            // 1. Add User Msg
+            addMsg(userMsg, false);
+            input.value = '';
             
-            addMsg(greeting, true);
-            setTimeout(() => nextQuestion(), 800);
-        }
-
-        function nextQuestion() {
-            if (aiState.step < questions.length) {
-                const q = questions[aiState.step];
-                addMsg(q.text, true);
-                addOpts(q.opts, (opt) => {
-                    // Scoring Logic
-                    allItems.forEach(item => {
-                        const itemTags = (item.tags || []).join(' ').toLowerCase();
-                        const cat = item.category || ''; // If you had category field
-                        opt.tags.forEach(t => {
-                            if(itemTags.includes(t)) aiState.scores[item.name] += opt.w;
-                        });
-                        // Random noise to prevent ties
-                        aiState.scores[item.name] += Math.random() * 0.5;
-                    });
-                    aiState.step++;
-                    setTimeout(() => nextQuestion(), 500);
+            // 2. Add Loading State
+            const loadingId = 'loading-' + Date.now();
+            addMsg('<i class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> Pensando...', true, loadingId);
+            
+            try {
+                // 3. Prepare Menu Context (Simplified for token efficiency)
+                const menuContext = allItems.map(i => ({ name: i.name, price: i.price, desc: i.description }));
+                
+                // 4. Call API
+                const res = await fetch(`${API_URL}/api/ai/generate`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        task: 'chef_chat',
+                        context: {
+                            menu: menuContext,
+                            userMsg: userMsg
+                        }
+                    })
                 });
-            } else {
-                showAIResult();
+                
+                const data = await res.json();
+                
+                // 5. Remove Loading & Show Response
+                document.getElementById(loadingId).remove();
+                
+                if(data.success) {
+                    addMsg(data.result, true);
+                } else {
+                    addMsg("Lo siento, mi cerebro IA está descansando un momento. Intenta de nuevo.", true);
+                }
+            } catch(e) {
+                console.error(e);
+                const l = document.getElementById(loadingId);
+                if(l) l.remove();
+                addMsg("Error de conexión. Verifica tu internet.", true);
             }
         }
 
-        function showAIResult() {
-            addMsg("Analizando tus gustos... 🧠", true);
-            setTimeout(() => {
-                // Find top winner
-                let winner = null, maxScore = -1;
-                allItems.forEach(i => {
-                    if (aiState.scores[i.name] > maxScore) { maxScore = aiState.scores[i.name]; winner = i; }
-                });
-
-                if(!winner) winner = allItems[0]; // Fallback
-
-                // Calculate Match % (Fake but fun)
-                const matchPct = Math.min(98, Math.floor(85 + (maxScore * 2)));
-
-                addMsg(`¡Lo tengo! Con un ${matchPct}% de coincidencia para ti:`, true);
-                
-                const c = document.getElementById('chat-container');
-                const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-2xl border border-blue-100 shadow-lg animate-fade-in mt-2";
-                card.innerHTML = `
-                    <div class="relative h-32 rounded-xl overflow-hidden mb-3 bg-gray-100">
-                        <img src="${winner.image}" class="w-full h-full object-cover">
-                        <div class="absolute top-2 right-2 badge-ai-match"><i class="fa-solid fa-fingerprint"></i> ${matchPct}% Match</div>
-                    </div>
-                    <div class="flex justify-between items-start">
-                        <h4 class="font-bold text-slate-800 text-lg">${winner.name}</h4>
-                        <span class="text-blue-600 font-bold">$${winner.price}</span>
-                    </div>
-                    <p class="text-gray-500 text-xs mt-1 mb-3 line-clamp-2">${winner.description || 'Una excelente elección para tu gusto.'}</p>
-                    <button onclick='addToCart(${JSON.stringify(winner).replace(/'/g,"&#39;")}); toggleAI()' class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition shadow-md">¡Lo quiero!</button>
-                `;
-                c.appendChild(card);
-                c.scrollTop = c.scrollHeight;
-                
-                addOpts([{txt: "🔄 Probar de nuevo", w:0, tags:[]}], () => startAIChat());
-
-            }, 1500);
-        }
-
-        function addMsg(txt,bot){ const c=document.getElementById('chat-container'); c.innerHTML+=`<div class="chat-bubble ${bot?'bot':'user'}">${txt}</div>`; c.scrollTop=c.scrollHeight; }
-        function addOpts(opts, callback){ 
-            const c=document.getElementById('chat-container'); 
-            const d=document.createElement('div'); d.className="chat-options"; 
-            opts.forEach(o=>{ 
-                const b=document.createElement('button'); b.className="chat-option-btn"; b.innerText=o.txt; 
-                b.onclick=()=>{ d.remove(); addMsg(o.txt,false); callback(o); }; 
-                d.appendChild(b); 
-            }); 
-            c.appendChild(d); c.scrollTop=c.scrollHeight; 
+        function addMsg(txt, bot, id=null) { 
+            const c = document.getElementById('chat-container'); 
+            const div = document.createElement('div');
+            div.className = `chat-bubble ${bot ? 'bot' : 'user'}`;
+            div.innerHTML = txt;
+            if(id) div.id = id;
+            c.appendChild(div); 
+            c.scrollTop = c.scrollHeight; 
         }
     </script>
 </body>
