@@ -133,6 +133,21 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* AI Suggestion Banner */
+        .ai-suggestion-banner {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            animation: fadeIn 0.5s ease-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="text-slate-800 ai-active" onclick="resetIdleTimer()" onscroll="resetIdleTimer()">
@@ -239,12 +254,23 @@
                 <button onclick="applyAIFilter('all')" class="ai-filter-btn active px-4 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:text-blue-600 hover:border-blue-200 transition shadow-sm">Todo</button>
                 <button onclick="applyAIFilter('top')" class="ai-filter-btn px-4 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:text-purple-600 hover:border-purple-200 transition shadow-sm"><i class="fa-solid fa-crown text-purple-500 mr-1"></i> Populares</button>
                 <button onclick="applyAIFilter('promo')" class="ai-filter-btn px-4 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:text-yellow-600 hover:border-yellow-200 transition shadow-sm"><i class="fa-solid fa-tag text-yellow-500 mr-1"></i> Ofertas</button>
+                
+                <!-- NUEVO BOTÓN SORPRÉNDEME IA -->
+                <button onclick="surpriseMeAI()" class="ai-filter-btn px-4 py-1.5 rounded-full text-xs font-medium border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition shadow-sm flex items-center gap-1">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Sorpréndeme
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Menu Section -->
     <div class="max-w-7xl mx-auto px-4 pb-24 min-h-[60vh]">
+        
+        <!-- AI Suggestion Area (Dynamic) -->
+        <div id="ai-suggestion-area" class="hidden">
+            <!-- Populated via JS -->
+        </div>
+
         <div id="menu-sections"></div>
         <div id="no-results" class="hidden text-center py-20">
             <i class="fa-solid fa-robot text-6xl text-gray-300 mb-4 animate-bounce"></i>
@@ -468,25 +494,106 @@
         let pendingItem = null;
         let USER_DATA = JSON.parse(localStorage.getItem('menuia_user_data')) || null;
         let ACTIVE_ORDER = JSON.parse(localStorage.getItem('menuia_active_order_' + SHOP_SLUG)) || null;
-
-        // --- CONTEXT AWARENESS & AI ENGINE ---
-        function initContextAwareness() {
-            const hour = new Date().getHours();
-            let greeting = "Bienvenido";
-            let contextIcon = "fa-sun";
-            let contextText = "Menú del Día";
-
-            if (hour >= 5 && hour < 12) { 
-                greeting = "Buenos Días"; contextIcon = "fa-mug-hot"; contextText = "Desayunos";
-            } else if (hour >= 12 && hour < 18) { 
-                greeting = "Hora de Comer"; contextIcon = "fa-utensils"; contextText = "Almuerzo";
-            } else if (hour >= 18 || hour < 5) { 
-                greeting = "Buenas Noches"; contextIcon = "fa-moon"; contextText = "Cena & Antojos";
+        // --- TASTE LEARNING SYSTEM (LOCAL & CLOUD) ---
+        function learnUserTaste(item) {
+            let tastes = JSON.parse(localStorage.getItem('menuia_user_tastes')) || { items: [], categories: {} };
+            
+            // Log Item
+            if (!tastes.items.includes(item.name)) {
+                tastes.items.unshift(item.name);
+                if(tastes.items.length > 5) tastes.items.pop(); // Keep last 5
             }
 
-            document.getElementById('hero-title').innerText = greeting.toUpperCase();
-            document.getElementById('context-text').innerText = contextText;
-            document.querySelector('#context-badge i').className = `fa-regular ${contextIcon} text-yellow-300 animate-spin-slow`;
+            // Log Category (Infer from tags if available or simple check)
+            const cat = detectCategory(item);
+            tastes.categories[cat] = (tastes.categories[cat] || 0) + 1;
+
+            // 1. Save Local
+            localStorage.setItem('menuia_user_tastes', JSON.stringify(tastes));
+            
+            // 2. Save to Cloud (MongoDB) if logged in
+            if (USER_DATA && USER_DATA.phone) {
+                syncTastesToCloud(tastes);
+            }
+
+            checkAndShowAISuggestion(); // Update suggestion if tastes change
+        }
+        
+        // Función para enviar gustos al servidor
+        async function syncTastesToCloud(tastes) {
+            try {
+                await fetch(`${API_URL}/api/customer/update-tastes`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        phone: USER_DATA.phone,
+                        tastes: tastes
+                    })
+                });
+                console.log("🧠 Gustos sincronizados con la nube");
+            } catch (e) {
+                console.warn("No se pudo sincronizar gustos con el servidor");
+            }
+        }
+
+        function detectCategory(item) {
+            const name = item.name.toLowerCase();
+            const tags = (item.tags || []).join(' ').toLowerCase();
+            if (name.includes('sushi') || tags.includes('sushi')) return 'Sushi';
+            if (name.includes('pizza') || tags.includes('pizza')) return 'Pizza';
+            if (name.includes('hamburg') || tags.includes('burger')) return 'Hamburguesas';
+            if (name.includes('ensalada') || tags.includes('salad') || tags.includes('fit')) return 'Saludable';
+            if (name.includes('postre') || name.includes('pastel') || tags.includes('sweet')) return 'Postres';
+            if (name.includes('bebida') || name.includes('refresco') || tags.includes('drink')) return 'Bebidas';
+            return 'General';
+        }
+
+        function checkAndShowAISuggestion() {
+            const tastes = JSON.parse(localStorage.getItem('menuia_user_tastes'));
+            const banner = document.getElementById('ai-suggestion-area');
+            
+            if (tastes && Object.keys(tastes.categories).length > 0) {
+                // Find favorite category
+                const favCat = Object.keys(tastes.categories).reduce((a, b) => tastes.categories[a] > tastes.categories[b] ? a : b);
+                
+                // Find an item from that category not in recent history
+                const suggestion = allItems.find(i => detectCategory(i) === favCat && !tastes.items.includes(i.name)) || allItems[0];
+                
+                if (suggestion) {
+                    banner.classList.remove('hidden');
+                    banner.className = "ai-suggestion-banner";
+                    const safeItem = JSON.stringify(suggestion).replace(/'/g, "&#39;");
+                    
+                    banner.innerHTML = `
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 text-blue-600">
+                            <i class="fa-solid fa-lightbulb text-xl animate-pulse"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-blue-900">Sugerencia Inteligente</h4>
+                            <p class="text-xs text-blue-700">Como te gusta <b>${favCat}</b>, creemos que te encantará: <b>${suggestion.name}</b>.</p>
+                        </div>
+                        <button onclick='addToCart(${safeItem})' class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm transition">
+                            Probar
+                        </button>
+                    `;
+                }
+            }
+        }
+
+        function surpriseMeAI() {
+            toggleAI();
+            const tastes = JSON.parse(localStorage.getItem('menuia_user_tastes'));
+            let prompt = "¿Me recomiendas algo al azar?";
+            if (tastes) {
+                prompt = "Sorpréndeme con un plato basado en mis gustos, o algo totalmente nuevo que sea la especialidad.";
+            }
+            
+            // Simulate user typing
+            const chatContainer = document.getElementById('chat-container');
+            if(chatContainer.innerHTML === '') chatContainer.innerHTML = ''; // Clear initial greeting if strictly needed or keep it
+            
+            // Call AI directly
+            handleChatSubmit(prompt); 
         }
 
         // --- SOCKET LOGIC ---
@@ -654,8 +761,21 @@
                     USER_DATA = data.customer;
                     USER_DATA.password = password; 
                     localStorage.setItem('menuia_user_data', JSON.stringify(USER_DATA));
+                    
+                    // IMPORTANTE: Sincronizar gustos de la DB al LocalStorage
+                    if (data.customer.tastes && (data.customer.tastes.items.length > 0 || Object.keys(data.customer.tastes.categories).length > 0)) {
+                        localStorage.setItem('menuia_user_tastes', JSON.stringify(data.customer.tastes));
+                        console.log("📥 Gustos descargados de la nube");
+                    } else {
+                        // Si es la primera vez en este dispositivo pero tiene datos locales, subirlos
+                        const localTastes = localStorage.getItem('menuia_user_tastes');
+                        if(localTastes) syncTastesToCloud(JSON.parse(localTastes));
+                    }
+                    
                     updateUserUI();
                     checkActiveOrder(); // IMPORTANT: Trigger tracker check on login
+                    initContextAwareness(); // Re-run context logic with new data
+                    
                     showToast(`¡Hola, ${USER_DATA.name.split(' ')[0]}!`);
                     toggleUserModal(); // Close modal
                 } else {
@@ -739,6 +859,7 @@
 
                 applyConfig(); 
                 renderMenu('all');
+                checkAndShowAISuggestion(); // Update banner after load
             } catch (e) { console.error("Error loading store"); }
         }
 
@@ -870,6 +991,9 @@
             if(show) m.classList.add('active'); else m.classList.remove('active');
         }
         function addToCart(item) {
+            // LEARN TASTE
+            learnUserTaste(item);
+
             let options = item.options || [];
             if (item.groupId && MENU_DATA.groups) {
                 const group = MENU_DATA.groups.find(g => g.id === item.groupId);
@@ -1055,14 +1179,14 @@
             } 
         }
 
-        async function handleChatSubmit() {
+        async function handleChatSubmit(manualMsg = null) {
             const input = document.getElementById('ai-user-input');
-            const userMsg = input.value.trim();
+            const userMsg = manualMsg || input.value.trim();
             if(!userMsg) return;
             
             // 1. Add User Msg
             addMsg(userMsg, false);
-            input.value = '';
+            if(!manualMsg) input.value = '';
             
             // 2. Add Loading State
             const loadingId = 'loading-' + Date.now();
@@ -1072,6 +1196,15 @@
                 // 3. Prepare Menu Context (Simplified for token efficiency)
                 const menuContext = allItems.map(i => ({ name: i.name, price: i.price, desc: i.description }));
                 
+                // --- INJECT USER TASTES INTO CONTEXT HIDDENLY ---
+                const tastes = JSON.parse(localStorage.getItem('menuia_user_tastes'));
+                let tasteContext = "";
+                if(tastes) {
+                    const topCat = Object.keys(tastes.categories).length > 0 ? 
+                        Object.keys(tastes.categories).reduce((a, b) => tastes.categories[a] > tastes.categories[b] ? a : b) : "Variado";
+                    tasteContext = `\n[SISTEMA: El cliente prefiere: ${topCat}. Últimos pedidos: ${tastes.items.join(', ')}. Usa esto para personalizar.]`;
+                }
+
                 // 4. Call API
                 const res = await fetch(`${API_URL}/api/ai/generate`, {
                     method: 'POST',
@@ -1080,7 +1213,7 @@
                         task: 'chef_chat',
                         context: {
                             menu: menuContext,
-                            userMsg: userMsg
+                            userMsg: userMsg + tasteContext // Inject here
                         }
                     })
                 });
