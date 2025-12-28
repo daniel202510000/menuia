@@ -427,7 +427,7 @@
                         <div class="absolute inset-0 bg-blue-50/50 group-hover:bg-blue-100/50 transition"></div>
                         <i class="fa-solid fa-robot animate-pulse text-purple-500"></i> <span
                             class="hidden sm:inline bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text font-extrabold">IA
-                            Chef</span>
+                            Local</span>
                     </button>
 
                     <div class="relative cursor-pointer hover:scale-110 transition duration-300" onclick="toggleCart()">
@@ -805,7 +805,7 @@
                             class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-sm">IA Chef (Real)</h3>
+                        <h3 class="font-bold text-slate-800 text-sm">Asistente Inteligente</h3>
                         <p class="text-[10px] text-blue-500 flex items-center gap-1"><span
                                 class="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span> En línea con Gemini</p>
                     </div>
@@ -1027,9 +1027,40 @@
             loadStoreData();
             resetIdleTimer();
             initUser();
+            refreshUserProfile(); // AUTO-SYNC FIX
             checkActiveOrder();
             initContextAwareness();
         });
+
+        // NEW SYNC FUNCTION
+        async function refreshUserProfile() {
+            if (!USER_DATA || !USER_DATA.phone || !USER_DATA.password) return;
+
+            try {
+                // Silently refresh profile
+                const res = await fetch(`${API_URL}/api/customer/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: USER_DATA.phone, password: USER_DATA.password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const pass = USER_DATA.password; // Keep stored pass
+                    USER_DATA = data.customer;
+                    USER_DATA.password = pass;
+                    localStorage.setItem('menuia_user_data', JSON.stringify(USER_DATA));
+
+                    // Update Tastes & Sync
+                    if (data.customer.tastes) {
+                        USER_TASTES = data.customer.tastes;
+                        localStorage.setItem('menuia_user_tastes', JSON.stringify(USER_TASTES));
+                    }
+
+                    updateUserUI(); // Re-render UI
+                    console.log("🔄 Perfil sincronizado con servidor");
+                }
+            } catch (e) { console.warn("Sync error", e); }
+        }
 
         // --- TRACKER LOGIC (STRICT USER ONLY) ---
         function checkActiveOrder() {
@@ -1632,7 +1663,7 @@
                 // Initial greeting if empty
                 const c = document.getElementById('chat-container');
                 if (c.innerHTML === '') {
-                    addMsg("¡Hola! Soy tu Chef Virtual con IA real 🤖. ¿Qué se te antoja hoy?", true);
+                    addMsg("¡Hola! Soy tu Asistente Virtual 🤖. ¿Qué necesitas hoy?", true);
                 }
             }
         }
@@ -1671,6 +1702,7 @@
                         task: 'chef_chat',
                         context: {
                             menu: menuContext,
+                            businessType: SHOP_CONFIG.businessType || 'Restaurante',
                             userMsg: userMsg + tasteContext // Inject here
                         }
                     })
