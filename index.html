@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MenúIA Food - Tu Ciudad, Tu Comida</title>
+    <title>MenúIA - Tu Ciudad, Tus Compras</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet CSS & JS (OpenStreetMap) -->
@@ -113,7 +113,7 @@
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold"><i
-                            class="fa-solid fa-utensils"></i></div>
+                            class="fa-solid fa-shop"></i></div>
                     <span class="font-bold text-xl tracking-tight text-slate-800">MenúIA</span>
                 </div>
                 <div class="flex items-center gap-3">
@@ -147,16 +147,17 @@
                 class="inline-block py-1 px-3 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold mb-4 uppercase tracking-wider backdrop-blur-sm">
                 <i class="fa-solid fa-bolt text-yellow-400"></i> Potenciado por Gemini
             </span>
-            <h1 class="text-4xl md:text-6xl font-bold mb-4 leading-tight">Tu comida favorita,<br><span
-                    class="text-blue-400">más inteligente.</span></h1>
-            <p class="text-gray-300 text-lg mb-8 font-light">Explora los mejores restaurantes de la ciudad con
-                recomendaciones personalizadas para ti.</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-4 leading-tight">Lo que necesitas,<br><span
+                    class="text-blue-400">cerca de ti.</span></h1>
+            <p class="text-gray-300 text-lg mb-8 font-light">Explora los mejores comercios, restaurantes y servicios de
+                tu ciudad con
+                recomendaciones personalizadas.</p>
 
             <div class="relative max-w-md mx-auto">
                 <div class="flex gap-2">
                     <div class="relative flex-1">
                         <input type="text" id="search-input" onkeyup="filterShops()"
-                            placeholder="¿Qué buscas? (Sushi, Pizza...)"
+                            placeholder="¿Qué buscas? (Sushi, Farmacia, Abarrotes...)"
                             class="w-full px-6 py-4 rounded-full text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500/30 shadow-xl pl-12 text-sm">
                         <i class="fa-solid fa-search absolute left-5 top-4 text-gray-400"></i>
                     </div>
@@ -201,31 +202,37 @@
         <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar" id="categories-container">
             <button onclick="filterCategory('all')"
                 class="cat-pill active px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-bold whitespace-nowrap transition shadow-md shadow-blue-500/20">Todas</button>
-            <button onclick="filterCategory('Sushi')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🍣
-                Sushi</button>
-            <button onclick="filterCategory('Pizza')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🍕
-                Pizza</button>
-            <button onclick="filterCategory('Hamburguesas')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🍔
-                Hamburguesas</button>
-            <button onclick="filterCategory('Tacos')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🌮
-                Tacos</button>
+            <button onclick="filterCategory('Restaurante')"
+                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🍽️
+                Restaurantes</button>
+            <button onclick="filterCategory('Abarrotes')"
+                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🛒
+                Abarrotes</button>
+            <button onclick="filterCategory('Farmacia')"
+                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">💊
+                Farmacia</button>
+            <button onclick="filterCategory('Carnicería')"
+                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🥩
+                Carnicería</button>
+            <button onclick="filterCategory('Cremería')"
+                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🧀
+                Cremería</button>
+            <button onclick="filterCategory('Verdulería')"
+                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🥦
+                Verdulería</button>
         </div>
     </div>
 
     <!-- Shops Grid -->
     <div class="max-w-7xl mx-auto px-4 pb-20">
         <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <i class="fa-solid fa-store text-blue-500"></i> Restaurantes Disponibles
+            <i class="fa-solid fa-store text-blue-500"></i> Comercios Disponibles
         </h2>
         <div id="shops-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Shops injected via JS -->
             <div class="col-span-full text-center py-20 text-gray-400">
                 <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3"></i>
-                <p>Cargando restaurantes...</p>
+                <p>Cargando comercios...</p>
             </div>
         </div>
     </div>
@@ -359,7 +366,7 @@
             <!-- Input Area -->
             <div class="p-4 bg-white border-t border-gray-100 z-10">
                 <form id="ai-chat-form" onsubmit="event.preventDefault(); handleMarketplaceChat();" class="flex gap-2">
-                    <input type="text" id="ai-user-input" placeholder="Ej: Busco algo picante..."
+                    <input type="text" id="ai-user-input" placeholder="Ej: Busco medicina para el dolor..."
                         class="flex-1 border border-gray-200 bg-gray-50 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition">
                     <button type="submit"
                         class="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition shadow-md">
@@ -381,11 +388,41 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initUser();
+            refreshUserProfile(); // AUTO-SYNC FIX
             initAutoLocation(); // Auto-start location
             loadShops();
         });
 
         // --- AUTH & USER DATA LOGIC ---
+        // NEW SYNC FUNCTION
+        async function refreshUserProfile() {
+            if (!USER_DATA || !USER_DATA.phone || !USER_DATA.password) return;
+
+            try {
+                // Silently refresh profile
+                const res = await fetch(`${API_URL}/api/customer/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: USER_DATA.phone, password: USER_DATA.password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const pass = USER_DATA.password; // Keep stored pass
+                    USER_DATA = data.customer;
+                    USER_DATA.password = pass;
+                    localStorage.setItem('menuia_user_data', JSON.stringify(USER_DATA));
+
+                    // Update Tastes
+                    if (data.customer.tastes) {
+                        USER_TASTES = data.customer.tastes;
+                        localStorage.setItem('menuia_user_tastes', JSON.stringify(USER_TASTES));
+                    }
+
+                    initUser(); // Re-render UI with fresh data
+                    console.log("🔄 Perfil sincronizado con servidor");
+                }
+            } catch (e) { console.warn("Sync error", e); }
+        }
         function initUser() {
             if (USER_DATA) {
                 const navName = document.getElementById('nav-user-name');
@@ -1136,11 +1173,21 @@
                     const btn = banner.querySelector('button');
 
                     // Smart Recommendation Logic
-                    // 1. Find a shop that matches this category
-                    const matchingShop = ALL_SHOPS.find(s =>
-                        (s.config?.businessType || '').includes(favCat) &&
-                        isShopOpen(s.config?.hours) // Prioritize open shops
-                    );
+                    // 1. Find a shop that matches this category AND is in range
+                    const matchingShop = ALL_SHOPS.find(s => {
+                        const matchesCat = (s.config?.businessType || '').includes(favCat);
+                        const isOpen = isShopOpen(s.config?.hours);
+
+                        // Distance Check
+                        let inRange = true;
+                        if (window.userLat && window.userLng && s.config?.coords) {
+                            const d = calculateDistance(window.userLat, window.userLng, s.config.coords.lat, s.config.coords.lng);
+                            const maxR = s.config.shipping?.maxRadius || 5;
+                            if (d > maxR) inRange = false;
+                        }
+
+                        return matchesCat && isOpen && inRange;
+                    });
 
                     let displayCat = favCat;
 
@@ -1165,7 +1212,17 @@
             // Find highest selling OPEN shop based on last 15 days orders
             if (ALL_SHOPS && ALL_SHOPS.length > 0) {
                 const trendingShop = [...ALL_SHOPS]
-                    .filter(s => isShopOpen(s.config?.hours))
+                    .filter(s => {
+                        const isOpen = isShopOpen(s.config?.hours);
+                        // Distance Check Fallback
+                        let inRange = true;
+                        if (window.userLat && window.userLng && s.config?.coords) {
+                            const d = calculateDistance(window.userLat, window.userLng, s.config.coords.lat, s.config.coords.lng);
+                            const maxR = s.config.shipping?.maxRadius || 5;
+                            if (d > maxR) inRange = false;
+                        }
+                        return isOpen && inRange;
+                    })
                     .sort((a, b) => (b.trendValue || 0) - (a.trendValue || 0) || (b.visits || 0) - (a.visits || 0))[0];
 
                 if (trendingShop) {
