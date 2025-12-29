@@ -122,6 +122,7 @@
                     <i
                         class="fa-solid fa-chevron-down ml-2 text-sm opacity-70 group-hover:translate-y-0.5 transition"></i>
                 </div>
+                <div id="location-status" class="hidden text-[10px] text-gray-400 mt-1 font-medium"></div>
             </div>
 
             <!-- Icons (Cart & Profile) -->
@@ -882,40 +883,96 @@
 
         function detectUserLocation() {
             const status = document.getElementById('location-status');
-            status.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Detectando ubicación...';
+            status.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Calibrando GPS (< 20m)...';
             status.classList.remove('hidden');
 
             if (!navigator.geolocation) {
-                status.innerHTML = "❌ Geolocalización no soportada. <button onclick='openAddressModal()' class='underline'>Ingresar Manual</button>";
+                status.innerHTML = "❌ GPS no soportado.";
                 return;
             }
 
-            navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
+            let watchId = null;
+            let bestAccuracy = Infinity;
+            let bestPos = null;
+            const TARGET_ACCURACY = 20; // meters
+            const MAX_WAIT_TIME = 15000; // 15 seconds limit
 
-                    // Reverse Geocode to get text
-                    try {
-                        const res = await fetch(`${API_URL}/api/utils/reverse-geocode`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ lat, lng })
-                        });
-                        const data = await res.json();
-                        const addr = data.success ? data.address : "Mi Ubicación Actual";
-                        setClientLocation(lat, lng, addr);
-                    } catch (e) {
-                        setClientLocation(lat, lng, "Ubicación Detectada");
+            // Timeout fallback
+            const timeoutId = setTimeout(() => {
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+
+                if (bestPos) {
+                    console.log(`Timeout reached. Best accuracy: ${bestAccuracy}m`);
+                    if (bestAccuracy <= 60) {
+                        // Accept somewhat ok accuracy
+                        finishDetection(bestPos, `Margen: ~${Math.round(bestAccuracy)}m`);
+                    } else {
+                        // Too imprecise, force manual
+                        status.innerHTML = `⚠️ Precisión baja (${Math.round(bestAccuracy)}m). Abriendo mapa...`;
+                        window.userLat = bestPos.coords.latitude;
+                        window.userLng = bestPos.coords.longitude;
+                        setTimeout(() => {
+                            openAddressModal();
+                            alert(`Tu GPS tiene poca señal (Error: ${Math.round(bestAccuracy)}m). Mueve el pin a tu entrada exacta.`);
+                        }, 1000);
+                    }
+                } else {
+                    status.innerHTML = "❌ Sin señal GPS. Intenta manual.";
+                }
+            }, MAX_WAIT_TIME);
+
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const acc = pos.coords.accuracy;
+                    console.log(`GPS Update: Accuracy ${acc}m`);
+
+                    if (acc < bestAccuracy) {
+                        bestAccuracy = acc;
+                        bestPos = pos;
+                    }
+
+                    // Feedback
+                    status.innerHTML = `<i class="fa-solid fa-satellite-dish fa-fade"></i> Calibrando: ${Math.round(acc)}m (Meta: < 20m)...`;
+
+                    // Success Condition
+                    if (acc <= TARGET_ACCURACY) {
+                        clearTimeout(timeoutId);
+                        navigator.geolocation.clearWatch(watchId);
+                        finishDetection(pos, "");
                     }
                 },
                 (err) => {
-                    console.error(err);
-                    const status = document.getElementById('location-status');
-                    status.innerHTML = "⚠️ No pudimos detectarte. <button onclick='openAddressModal()' class='underline text-white font-bold'>Ingresar Dirección Manualmente</button>";
+                    console.error("GPS Error", err);
+                    if (err.code === 1) { // User denied
+                        clearTimeout(timeoutId);
+                        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                        status.innerHTML = "❌ Permiso GPS denegado.";
+                    }
                 },
-                { enableHighAccuracy: true, timeout: 8000 }
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
+
+            async function finishDetection(pos, msg) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const accuracy = pos.coords.accuracy; // Define here
+
+                try {
+                    const res = await fetch(`${API_URL}/api/utils/reverse-geocode`, {
+                        method: 'POST',
+                        body: JSON.stringify({ lat, lng }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+                    setClientLocation(lat, lng, data.success ? data.address : "Mi Ubicación");
+                    status.innerHTML = "";
+                    status.classList.add('hidden');
+                    if (msg && accuracy > 20) alert("Ubicación fijada. " + msg);
+                } catch (e) {
+                    setClientLocation(lat, lng, "Ubicación Detectada");
+                    status.classList.add('hidden');
+                }
+            }
         }
 
         let mapInstance = null;
@@ -938,7 +995,7 @@
                                 placeholder="Escribe tu dirección..."
                                 class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                                 autocomplete="off">
-                            <button onclick="searchManualAddress()"
+                            <button type="button" onclick="searchManualAddress()"
                                 class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition"><i
                                     class="fa-solid fa-search"></i></button>
                         </div>
@@ -951,12 +1008,12 @@
                     <div id="customer-map"
                         class="w-full h-64 bg-gray-100 rounded-lg border border-gray-200 mb-4 relative z-0"></div>
 
-                    <button onclick="confirmMapSelection()"
+                    <button type="button" onclick="confirmMapSelection()"
                         class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition">Confirmar
                         Ubicación</button>
 
                     <div class="text-center border-t border-gray-100 pt-4 mt-2">
-                        <button onclick="closeAddressModal(); detectUserLocation()"
+                        <button type="button" onclick="closeAddressModal(); detectUserLocation()"
                             class="text-blue-600 text-sm font-bold hover:underline"><i
                                 class="fa-solid fa-location-crosshairs"></i> Usar mi ubicación actual</button>
                     </div>
