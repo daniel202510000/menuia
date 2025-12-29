@@ -107,119 +107,199 @@
 
 <body class="bg-slate-50">
 
-    <!-- Navbar -->
-    <nav class="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold"><i
-                            class="fa-solid fa-shop"></i></div>
-                    <span class="font-bold text-xl tracking-tight text-slate-800">MenúIA</span>
+    <!-- APP HEADER (Mobile/Web Hybrid) -->
+    <header class="bg-black px-4 pt-10 pb-16 rounded-b-[2rem] shadow-lg relative z-30 mb-8">
+        <!-- Top Bar: Location & User/Cart -->
+        <div class="flex justify-between items-start mb-6">
+            <!-- Location Selector -->
+            <div class="flex-1 mr-4 cursor-pointer group" onclick="openAddressModal()">
+                <div class="flex items-center text-gray-300 text-xs font-bold mb-0.5">
+                    <i class="fa-solid fa-location-dot mr-1"></i> Entregar en:
                 </div>
-                <div class="flex items-center gap-3">
-                    <!-- Botón Login -->
-                    <button onclick="toggleUserModal()"
-                        class="text-gray-500 hover:text-slate-900 transition flex items-center gap-2 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
-                        <div id="nav-user-icon-wrapper" class="w-6 h-6 flex items-center justify-center">
-                            <i class="fa-solid fa-user-circle text-lg"></i>
-                        </div>
-                        <span id="nav-user-name" class="text-xs font-bold hidden sm:inline">Ingresar</span>
-                    </button>
+                <div class="flex items-center text-white">
+                    <span id="header-address-text"
+                        class="font-bold text-lg truncate block max-w-[200px] leading-tight">Ubicación actual</span>
+                    <i
+                        class="fa-solid fa-chevron-down ml-2 text-sm opacity-70 group-hover:translate-y-0.5 transition"></i>
+                </div>
+            </div>
 
-                    <!-- Botón IA -->
-                    <button onclick="toggleAI()"
-                        class="group relative bg-white hover:bg-blue-50 text-blue-600 border border-blue-100 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition shadow-sm hover:shadow-md">
-                        <i class="fa-solid fa-sparkles text-purple-500 animate-pulse"></i>
-                        <span
-                            class="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Asistente
-                            IA</span>
-                    </button>
+            <!-- Icons (Cart & Profile) -->
+            <div class="flex items-center gap-3">
+                <!-- User Profile (Hidden on mobile if bottom nav exists, but good for desktop) -->
+                <div id="header-user-icon"
+                    class="hidden md:flex items-center justify-center w-10 h-10 bg-white/20 rounded-full text-white cursor-pointer hover:bg-white/30 transition"
+                    onclick="openLoginModal()">
+                    <i class="fa-regular fa-user"></i>
+                </div>
+
+                <!-- Cart -->
+                <div class="relative cursor-pointer" onclick="toggleCartSidebar()">
+                    <div
+                        class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-lg hover:scale-105 transition">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </div>
+                    <span id="cart-count-badge"
+                        class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-black hidden">0</span>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <div class="hero-bg text-white py-20 px-4 text-center relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900/90"></div>
-        <div class="relative z-10 max-w-2xl mx-auto">
-            <span
-                class="inline-block py-1 px-3 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold mb-4 uppercase tracking-wider backdrop-blur-sm">
-                <i class="fa-solid fa-bolt text-yellow-400"></i> Potenciado por Gemini
-            </span>
-            <h1 class="text-4xl md:text-6xl font-bold mb-4 leading-tight">Lo que necesitas,<br><span
-                    class="text-blue-400">cerca de ti.</span></h1>
-            <p class="text-gray-300 text-lg mb-8 font-light">Explora los mejores comercios, restaurantes y servicios de
-                tu ciudad con
-                recomendaciones personalizadas.</p>
+        <!-- Search Bar -->
+        <div class="relative shadow-xl">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+            </div>
+            <input type="text" id="search-input" onkeyup="filterShops()"
+                class="block w-full pl-11 pr-4 py-4 rounded-full text-gray-900 placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                placeholder="¿Qué se te antoja hoy? (Sushi, Pizza...)">
+        </div>
+    </header>
 
-            <div class="relative max-w-md mx-auto">
-                <div class="flex gap-2">
-                    <div class="relative flex-1">
-                        <input type="text" id="search-input" onkeyup="filterShops()"
-                            placeholder="¿Qué buscas? (Sushi, Farmacia, Abarrotes...)"
-                            class="w-full px-6 py-4 rounded-full text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-500/30 shadow-xl pl-12 text-sm">
-                        <i class="fa-solid fa-search absolute left-5 top-4 text-gray-400"></i>
+    <!-- Global Tracker Original Position (Hidden, logic will move content or we reuse this ID) -->
+    <div id="global-order-tracker" class="hidden max-w-2xl mx-auto px-4 -mt-12 relative z-40 mb-6">
+        <div class="bg-blue-600 rounded-xl shadow-xl p-1 text-white overflow-hidden ring-4 ring-white">
+            <div class="p-3 flex items-center justify-between gap-4 cursor-pointer"
+                onclick="toggleGlobalTrackerDetails()">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                        <i class="fa-solid fa-motorcycle text-sm"></i>
                     </div>
-                    <button onclick="filterByLocation()" id="btn-location"
-                        class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl transition tooltip-btn relative group"
-                        title="Usar mi ubicación">
-                        <i class="fa-solid fa-location-crosshairs text-xl"></i>
-                        <span
-                            class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">Cerca
-                            de mí</span>
-                    </button>
+                    <div>
+                        <h3 class="font-bold text-xs" id="global-tracker-title">Tu Pedido</h3>
+                        <p class="text-[10px] opacity-90" id="global-tracker-msg">En camino...</p>
+                    </div>
                 </div>
-                <div id="location-status" class="text-xs mt-2 font-medium text-blue-200 hidden"></div>
+                <i class="fa-solid fa-chevron-down opacity-70"></i>
+            </div>
+            <div id="global-tracker-details" class="hidden p-3 border-t border-white/10 mt-1 bg-blue-700">
+                <div id="global-orders-list" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
-    <!-- AI Personalization Banner -->
-    <div id="ai-recommendation-banner" class="max-w-7xl mx-auto px-4 -mt-8 relative z-20 hidden animate-fade-in">
-        <div
-            class="bg-white rounded-2xl shadow-xl p-6 border border-blue-100 flex items-center gap-6 relative overflow-hidden">
-            <div
-                class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-purple-50 rounded-bl-full -z-0">
-            </div>
-            <div
-                class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0 z-10">
-                <i class="fa-solid fa-brain text-xl"></i>
-            </div>
-            <div class="flex-1 z-10">
-                <h3 class="font-bold text-slate-800 text-lg">Recomendación Personalizada</h3>
-                <p class="text-slate-500 text-sm" id="ai-banner-text">Analizando tus gustos...</p>
-            </div>
-            <button onclick="toggleAI()"
-                class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition z-10 shadow-lg shadow-slate-900/20">
-                Ver más
+    <!-- AI Personalization Banner REMOVED -->
+
+    <!-- CATEGORIES ROW (Horizontal Scroll) -->
+    <div class="max-w-7xl mx-auto px-4 mb-4">
+        <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar" id="categories-container">
+            <!-- Items -->
+            <button onclick="filterCategory('Restaurante')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-orange-100">
+                    🍔
+                </div>
+                <span class="text-xs font-bold text-gray-600">Comida</span>
+            </button>
+            <button onclick="filterCategory('Abarrotes')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-green-100">
+                    🥬
+                </div>
+                <span class="text-xs font-bold text-gray-600">Súper</span>
+            </button>
+            <button onclick="filterCategory('Farmacia')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-blue-100">
+                    💊
+                </div>
+                <span class="text-xs font-bold text-gray-600">Farmacia</span>
+            </button>
+            <button onclick="filterCategory('Bebidas')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-purple-100">
+                    🥤
+                </div>
+                <span class="text-xs font-bold text-gray-600">Bebidas</span>
+            </button>
+            <button onclick="filterCategory('Postres')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-pink-50 text-pink-500 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-pink-100">
+                    🍩
+                </div>
+                <span class="text-xs font-bold text-gray-600">Postres</span>
+            </button>
+            <button onclick="filterCategory('Café')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-amber-100">
+                    ☕
+                </div>
+                <span class="text-xs font-bold text-gray-600">Café</span>
+            </button>
+            <button onclick="filterCategory('Mascotas')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-yellow-100">
+                    🐾
+                </div>
+                <span class="text-xs font-bold text-gray-600">Mascotas</span>
+            </button>
+            <button onclick="filterCategory('all')" class="flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-gray-50 text-gray-500 flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition border border-gray-100">
+                    🔎
+                </div>
+                <span class="text-xs font-bold text-gray-600">Ver Todo</span>
             </button>
         </div>
     </div>
 
-    <!-- Categories -->
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar" id="categories-container">
-            <button onclick="filterCategory('all')"
-                class="cat-pill active px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-bold whitespace-nowrap transition shadow-md shadow-blue-500/20">Todas</button>
-            <button onclick="filterCategory('Restaurante')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🍽️
-                Restaurantes</button>
-            <button onclick="filterCategory('Abarrotes')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🛒
-                Abarrotes</button>
-            <button onclick="filterCategory('Farmacia')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">💊
-                Farmacia</button>
-            <button onclick="filterCategory('Carnicería')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🥩
-                Carnicería</button>
-            <button onclick="filterCategory('Cremería')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🧀
-                Cremería</button>
-            <button onclick="filterCategory('Verdulería')"
-                class="cat-pill px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 text-sm font-bold whitespace-nowrap border border-gray-200 transition">🥦
-                Verdulería</button>
+    <!-- BRANDS CAROUSEL (Mobile App Style) -->
+    <div class="max-w-7xl mx-auto px-4 mb-8">
+        <h3 class="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-crown text-blue-500"></i> Marcas Populares
+        </h3>
+        <div class="flex gap-4 overflow-x-auto pb-2 no-scrollbar" id="popular-brands-container">
+            <!-- Loaded Dynamically -->
+        </div>
+    </div>
+    </div>
+
+    <!-- TOP STORES (Horizontal Scroll) -->
+    <div class="max-w-7xl mx-auto px-4 mb-8">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-slate-800 text-lg">Top Comercios 🏆</h3>
+            <button
+                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+        </div>
+        <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar" id="top-shops-container">
+            <!-- Loaded Dynamically -->
+        </div>
+    </div>
+
+    <!-- FLASH DEALS GRID -->
+    <div class="max-w-7xl mx-auto px-4 mb-8">
+        <h3 class="font-bold text-slate-800 text-lg mb-3">Ofertas Relámpago ⚡</h3>
+        <div class="grid grid-cols-2 gap-3" id="deals-container">
+            <!-- Mock Deal -->
+            <div
+                class="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-4 text-white relative overflow-hidden cursor-pointer hover:scale-[1.02] transition">
+                <div class="relative z-10">
+                    <span
+                        class="bg-white text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 inline-block">30%
+                        OFF</span>
+                    <h4 class="font-bold text-lg leading-tight w-2/3">Combo Familiar</h4>
+                    <p class="text-xs opacity-90 mt-1">Termina en 2h</p>
+                    <button class="mt-3 bg-white text-orange-600 px-3 py-1 rounded-full text-xs font-bold">Ver
+                        Promo</button>
+                </div>
+                <img src="https://pngimg.com/d/burger_sandwich_PNG9670.png"
+                    class="absolute -bottom-4 -right-4 w-28 drop-shadow-lg rotate-12">
+            </div>
+            <!-- Mock Deal 2 -->
+            <div
+                class="bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl p-4 text-white relative overflow-hidden cursor-pointer hover:scale-[1.02] transition">
+                <div class="relative z-10">
+                    <span
+                        class="bg-white text-green-600 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 inline-block">2x1</span>
+                    <h4 class="font-bold text-lg leading-tight w-2/3">Farmacia Basic</h4>
+                    <p class="text-xs opacity-90 mt-1">Solo hoy</p>
+                    <button class="mt-3 bg-white text-black px-3 py-1 rounded-full text-xs font-bold">Comprar</button>
+                </div>
+                <img src="https://assets.stickpng.com/images/580b57fbd9996e24bc43c080.png"
+                    class="absolute -bottom-2 -right-4 w-24 drop-shadow-lg">
+            </div>
         </div>
     </div>
 
@@ -380,6 +460,13 @@
     <script>
         const API_URL = "https://menuia.onrender.com";
         // const API_URL = "http://localhost:3000"; // Descomentar para pruebas locales
+
+        // Init Socket
+        let socket;
+        try {
+            socket = io(API_URL);
+            console.log("🔌 Connecting socket to", API_URL);
+        } catch (e) { console.error("Socket init error:", e); }
         let ALL_SHOPS = [];
         let DISPLAYED_SHOPS = [];
         let CURRENT_FILTER = 'all';
@@ -467,6 +554,8 @@
                 const mTitle = document.getElementById('modal-title');
                 if (mTitle) mTitle.innerText = "Tu Perfil";
 
+                // CHECK ACTIVE ORDERS
+                checkGlobalActiveOrders();
 
                 if (typeof checkAndShowAISuggestion === 'function') checkAndShowAISuggestion();
             } else {
@@ -522,6 +611,39 @@
                 }
             } catch (e) { alert("Error de conexión"); }
             btn.innerText = originalText; btn.disabled = false;
+        }
+
+        // Initialize Real-time Updates Listener
+        if (typeof socket !== 'undefined') {
+            console.log("✅ Socket Client Initialized");
+            socket.on('shop-config-updated', (data) => {
+                console.log("⚡ SOCKET EVENT:", data);
+
+                const shopIndex = ALL_SHOPS.findIndex(s => s.slug === data.slug);
+                if (shopIndex !== -1) {
+                    // Update Local State directly
+                    const shop = ALL_SHOPS[shopIndex];
+                    if (!shop.config) shop.config = {};
+
+                    if (data.type === 'featured') {
+                        shop.config.isFeatured = data.value;
+                        console.log(`Updated Featured: ${shop.config.name} -> ${data.value}`);
+                    }
+                    if (data.type === 'brand') {
+                        shop.config.isPopularBrand = data.value;
+                        console.log(`Updated Brand: ${shop.config.name} -> ${data.value}`);
+                    }
+
+                    // Force Re-render with delay to ensure DOM is ready
+                    setTimeout(() => {
+                        renderTopShops();
+                        renderPopularBrands();
+                    }, 50);
+                } else {
+                    console.warn("Shop not in cache, reloading all...");
+                    loadShops();
+                }
+            });
         }
 
         function logoutUser() {
@@ -628,6 +750,8 @@
                     : `<span
         class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded-full border border-red-200">CERRADO</span>`;
 
+                const logo = shop.config.logo || 'https://placehold.co/50?text=Logo';
+
                 // Fix "General" label to be more descriptive
                 let typeDisplay = shop.config?.businessType || 'Variedad';
                 if (typeDisplay === 'General' || typeDisplay === 'Comida General') typeDisplay = 'Variedad';
@@ -636,16 +760,18 @@
     <a href="${baseUrl}menu.html?slug=${shop.slug}"
         class="shop-card bg-white rounded-2xl overflow-hidden block group relative">
         <div class="relative h-40 overflow-hidden">
-            <img src="${shop.config.heroImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}"
+            <img src="${shop.config.heroImage || 'https://placehold.co/600x400?text=Cover'}"
                 alt="${shop.config.name}"
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" onerror="this.src='https://placehold.co/600x400?text=No+Image'">
             <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-            <div class="absolute bottom-3 left-3 text-white">
-                <h3 class="font-bold text-lg leading-tight shadow-black drop-shadow-md">${shop.config.name}</h3>
+            <div class="absolute bottom-3 left-3 text-white max-w-[75%]">
+                <h3 class="font-bold text-lg leading-tight shadow-black drop-shadow-md truncate">${shop.config.name}</h3>
                 <p
                     class="text-[10px] opacity-90 font-medium tracking-wide border px-1.5 py-0.5 rounded border-white/30 bg-black/20 backdrop-blur-sm inline-block mt-1">
                     ${typeDisplay}</p>
             </div>
+            <!-- LOGO OVERLAY -->
+            <img src="${logo}" class="absolute bottom-2 right-2 w-12 h-12 rounded-full border-2 border-white object-cover shadow-md bg-white z-10" onerror="this.src='https://placehold.co/50?text=Logo'">
         </div>
         <div class="absolute top-3 right-3">${statusHtml}</div>
         ${shop.config?.highDemand ? `<div
@@ -739,21 +865,12 @@
             window.userLng = parseFloat(lng);
             window.userAddress = address;
 
-            // Update UI
-            const btn = document.getElementById('btn-location');
-            const status = document.getElementById('location-status');
-
-            // Show address in UI (maybe replace the button content or add a dedicated bar)
-            btn.innerHTML = '<i class="fa-solid fa-map-location-dot"></i>';
-            btn.classList.remove('bg-blue-600');
-            btn.classList.add('bg-green-600');
-
-            // Update Status Text
-            status.innerHTML = `<span class="font-bold text-green-300"><i class="fa-solid fa-check-circle"></i>
-                Entregando en:</span> ${address.substring(0, 40)}${address.length > 40 ? '...' : ''} <button
-                onclick="openAddressModal()"
-                class="ml-2 underline text-white text-xs hover:text-blue-200">Cambiar</button>`;
-            status.classList.remove('hidden');
+            // Updated UI for new header
+            const addressText = document.getElementById('header-address-text');
+            if (addressText) {
+                // Keep it short
+                addressText.innerText = address.substring(0, 25) + (address.length > 25 ? '...' : '');
+            }
 
             if (save) {
                 localStorage.setItem('menuia_user_location', JSON.stringify({ lat, lng, address }));
@@ -1153,100 +1270,75 @@
         }
 
         function checkAndShowAISuggestion() {
-            if (!USER_TASTES || !USER_TASTES.categories) return;
-
-            // Encontrar categoría favorita
-            const cats = USER_TASTES.categories;
-            const favCatKeys = Object.keys(cats).sort((a, b) => cats[b] - cats[a]); // Sort desc
-
-            if (favCatKeys.length === 0) return;
-            const favCat = favCatKeys[0];
-
-            if (favCat) {
-                // If top category is just 'General', skip personalized and go to Trending Fallback for better
-                // suggestions
-                if (favCat === 'General' || favCat === 'Comida General') {
-                    // Fallthrough to Trending Logic below
-                } else {
-                    const banner = document.getElementById('ai-recommendation-banner');
-                    const txt = document.getElementById('ai-banner-text');
-                    const btn = banner.querySelector('button');
-
-                    // Smart Recommendation Logic
-                    // 1. Find a shop that matches this category AND is in range
-                    const matchingShop = ALL_SHOPS.find(s => {
-                        const matchesCat = (s.config?.businessType || '').includes(favCat);
-                        const isOpen = isShopOpen(s.config?.hours);
-
-                        // Distance Check
-                        let inRange = true;
-                        if (window.userLat && window.userLng && s.config?.coords) {
-                            const d = calculateDistance(window.userLat, window.userLng, s.config.coords.lat, s.config.coords.lng);
-                            const maxR = s.config.shipping?.maxRadius || 5;
-                            if (d > maxR) inRange = false;
-                        }
-
-                        return matchesCat && isOpen && inRange;
-                    });
-
-                    let displayCat = favCat;
-
-                    if (matchingShop) {
-                        // Recommendation with specific restaurant
-                        txt.innerHTML = `Como te gusta <b>${displayCat}</b>, te recomendamos <b>${matchingShop.config.name}</b>.
-                ¡Pruébalo ahora!`;
-                        if (btn) {
-                            btn.innerText = "Ir al Restaurante";
-                            btn.onclick = () => window.location.href = `menu.html?slug=${matchingShop.slug}`;
-                        }
-                        banner.classList.remove('hidden');
-                        return; // Exit, success
-                    } else {
-                        // If we have a specific category (e.g. Sushi) but no shop match, generic is okay-ish,
-                        // BUT user prefers specific trends. Let's try fallback even here if no specific match found.
-                    }
-                }
-            }
-
-            // 2. TRENDING FALLBACK (Platillo Tendencia - 15 Días)
-            // Find highest selling OPEN shop based on last 15 days orders
-            if (ALL_SHOPS && ALL_SHOPS.length > 0) {
-                const trendingShop = [...ALL_SHOPS]
-                    .filter(s => {
-                        const isOpen = isShopOpen(s.config?.hours);
-                        // Distance Check Fallback
-                        let inRange = true;
-                        if (window.userLat && window.userLng && s.config?.coords) {
-                            const d = calculateDistance(window.userLat, window.userLng, s.config.coords.lat, s.config.coords.lng);
-                            const maxR = s.config.shipping?.maxRadius || 5;
-                            if (d > maxR) inRange = false;
-                        }
-                        return isOpen && inRange;
-                    })
-                    .sort((a, b) => (b.trendValue || 0) - (a.trendValue || 0) || (b.visits || 0) - (a.visits || 0))[0];
-
-                if (trendingShop) {
-                    const banner = document.getElementById('ai-recommendation-banner');
-                    const txt = document.getElementById('ai-banner-text');
-                    const btn = banner.querySelector('button');
-
-                    const dish = trendingShop.trendingDish || "sus platillos";
-
-                    // message focuses on the DISH, not the number
-                    txt.innerHTML = `🔥 Tendencia: <b>${trendingShop.config.name}</b> está arrasando con <b>${dish}</b>.
-                ¡Pide lo que todos quieren!`;
-
-                    if (btn) {
-                        btn.innerText = "Ver Menú";
-                        btn.onclick = () => window.location.href = `menu.html?slug=${trendingShop.slug}`;
-                    }
-                    banner.classList.remove('hidden');
-                }
-            }
+            // Function disabled (Banner removed)
+            return;
         }
 
         function resetIdleTimer() {
             // Logic for idle timer would go here
+        }
+
+        function renderTopShops() {
+            const container = document.getElementById('top-shops-container');
+            if (!container) return;
+            if (!ALL_SHOPS || ALL_SHOPS.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 pl-4">No hay comercios destacados aún.</p>';
+                return;
+            }
+
+            // FILTER: Only show "isFeatured" shops
+            let topShops = ALL_SHOPS.filter(s => s.config?.isFeatured === true);
+
+            if (topShops.length === 0) {
+                container.innerHTML = '<div class="pl-4 text-sm text-gray-500 italic">Próximamente tiendas destacadas... 🌟</div>';
+                return;
+            }
+
+            container.innerHTML = topShops.map(s => {
+                const img = s.config.heroImage || s.config.logo || 'https://placehold.co/400x200?text=Shop';
+                const logo = s.config.logo || 'https://placehold.co/50?text=Logo';
+                const rating = s.trendValue ? (4 + (s.trendValue / 100)).toFixed(1) : '5.0';
+
+                return `
+                 <div onclick="window.location.href='menu.html?slug=${s.slug}'" class="min-w-[280px] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition">
+                    <div class="h-32 bg-gray-200 relative">
+                         <img src="${img}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x200?text=No+Image'">
+                         <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-green-700">Recomendado <i class="fa-solid fa-star text-yellow-500"></i></span>
+                         <!-- LOGO OVERLAY -->
+                         <img src="${logo}" class="absolute bottom-2 right-2 w-10 h-10 rounded-full border-2 border-white object-cover shadow-md bg-white" onerror="this.src='https://placehold.co/50?text=Logo'">
+                    </div>
+                    <div class="p-3">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-slate-800 truncate pr-2">${s.config.name}</h4>
+                             <span class="text-xs font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">${rating} <i class="fa-solid fa-star text-[10px]"></i></span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 truncate">${s.config.businessType || 'Comercio'} • $$</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderPopularBrands() {
+            const container = document.getElementById('popular-brands-container');
+            if (!container) return;
+
+            const brands = ALL_SHOPS.filter(s => s.config?.isPopularBrand === true);
+
+            if (brands.length === 0) {
+                container.innerHTML = '<div class="pl-2 text-xs text-gray-400 italic">No hay marcas destacadas aún.</div>';
+                return;
+            }
+
+            container.innerHTML = brands.map(s => {
+                const logo = s.config.logo || 'https://placehold.co/150?text=Brand';
+                return `
+                <div onclick="window.location.href='menu.html?slug=${s.slug}'" class="flex flex-col items-center min-w-[4rem] cursor-pointer hover:opacity-80 transition">
+                    <div class="w-16 h-16 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden p-2">
+                        <img src="${logo}" class="w-full h-full object-contain" alt="${s.config.name}" onerror="this.src='https://placehold.co/150?text=Logo'"> 
+                    </div>
+                    <span class="text-[10px] font-bold text-gray-500 mt-1 truncate w-16 text-center">${s.config.name}</span>
+                </div>`;
+            }).join('');
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1254,7 +1346,105 @@
             initAutoLocation();
             resetIdleTimer();
         });
+
+        // Ensure functions called after shops loaded
+        const originalFilterShops = filterShops;
+        filterShops = function () {
+            const res = originalFilterShops();
+
+            // Re-render Dynamic Sections
+            renderTopShops();
+            renderPopularBrands();
+
+            return res;
+        };
+
+        // --- GLOBAL ORDER TRACKER LOGIC ---
+        let globalOrders = [];
+        async function checkGlobalActiveOrders() {
+            if (!USER_DATA || !USER_DATA.phone) return;
+            try {
+                const res = await fetch(`${API_URL}/api/customer/orders/${USER_DATA.phone}`);
+                const data = await res.json();
+
+                if (data.success && data.orders.length > 0) {
+                    globalOrders = data.orders;
+                    renderGlobalTracker();
+                } else {
+                    document.getElementById('global-order-tracker').classList.add('hidden');
+                }
+            } catch (e) { console.error("Error checking orders", e); }
+        }
+
+        function renderGlobalTracker() {
+            const container = document.getElementById('global-order-tracker');
+            const title = document.getElementById('global-tracker-title');
+            const msg = document.getElementById('global-tracker-msg');
+            const list = document.getElementById('global-orders-list');
+
+            if (!globalOrders.length) { container.classList.add('hidden'); return; }
+
+            container.classList.remove('hidden');
+
+            // Show summary of most recent
+            const mainOrder = globalOrders[0];
+            title.innerText = `Tu pedido en ${mainOrder.shopName}`;
+
+            const statusMap = {
+                'pending': '⏳ Confirmando...',
+                'preparing': '🔥 Preparando...',
+                'ready': '📦 Listo para salir',
+                'delivering': '🏍️ En Camino'
+            };
+            msg.innerText = statusMap[mainOrder.status] || "Procesando...";
+
+            // Render Full List
+            list.innerHTML = globalOrders.map(o => `
+                <div class="flex items-center justify-between text-sm py-2 border-b border-white/20 last:border-0">
+                    <div>
+                        <div class="font-bold">${o.shopName} <span class="text-xs opacity-70">#${(o.dailyId || '...').toString().slice(-4)}</span></div>
+                        <div class="text-xs">${o.items.length} items • $${o.total}</div>
+                    </div>
+                    <div class="text-right">
+                         <div class="font-bold text-xs bg-white/20 px-2 py-1 rounded">${statusMap[o.status] || o.status}</div>
+                         <button onclick="window.location.href='menu.html?slug=${o.shopSlug}'" class="text-[10px] underline mt-1 hover:text-blue-200">Ver Detalles</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleGlobalTrackerDetails() {
+            document.getElementById('global-tracker-details').classList.toggle('hidden');
+        }
     </script>
+    <!-- BOTTOM NAVIGATION (App Style) -->
+    <nav
+        class="fixed bottom-0 w-full bg-white border-t border-gray-200 py-3 px-6 flex justify-between items-center z-50 md:hidden pb-safe">
+        <a href="#" class="flex flex-col items-center gap-1 text-black">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-[10px] font-bold">Inicio</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 text-gray-400 hover:text-black transition">
+            <i class="fa-solid fa-magnifying-glass text-xl"></i>
+            <span class="text-[10px] font-medium">Buscar</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 text-gray-400 hover:text-black transition relative">
+            <div
+                class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center -mt-8 border-4 border-slate-50 shadow-lg text-black">
+                <i class="fa-solid fa-basket-shopping text-xl"></i>
+            </div>
+            <span class="text-[10px] font-medium">Pedidos</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-1 text-gray-400 hover:text-black transition">
+            <i class="fa-regular fa-heart text-xl"></i>
+            <span class="text-[10px] font-medium">Favoritos</span>
+        </a>
+        <a href="#" onclick="toggleUserModal()"
+            class="flex flex-col items-center gap-1 text-gray-400 hover:text-black transition">
+            <i class="fa-regular fa-user text-xl"></i>
+            <span class="text-[10px] font-medium">Perfil</span>
+        </a>
+    </nav>
 </body>
 
 </html>
