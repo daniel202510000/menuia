@@ -717,7 +717,7 @@
                     <!-- Text Info -->
                     <div class="flex-1 flex flex-col justify-start">
                         <h4 class="font-bold text-black text-base mb-1 leading-tight">${item.name}</h4>
-                        <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3 pr-2 font-medium">${item.desc || 'Descripción del platillo.'}</p>
+                        <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3 pr-2 font-medium">${item.description || item.desc || 'Descripción del platillo.'}</p>
                         <div class="mt-auto flex items-center gap-2">
                              <div class="flex flex-col leading-none">
                                 <span class="font-bold text-black text-base">MX$${parseFloat(item.price).toFixed(2)}</span>
@@ -788,7 +788,7 @@
                 document.getElementById('detail-old-price').style.display = 'none';
             }
 
-            document.getElementById('detail-desc').innerText = item.desc || "";
+            document.getElementById('detail-desc').innerText = item.description || item.desc || "";
             document.getElementById('detail-img').src = item.image || 'https://placehold.co/400';
 
             // RESET INPUTS
