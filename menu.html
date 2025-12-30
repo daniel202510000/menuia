@@ -7,13 +7,14 @@
     <title>Menú - Detalles del Comercio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: #fcfcfc;
+            /* Lighter gray/white */
         }
 
         /* Hide scrollbar for Chrome, Safari and Opera */
@@ -33,6 +34,7 @@
             transition: opacity 0.3s ease, visibility 0.3s;
             opacity: 0;
             visibility: hidden;
+            z-index: 9999;
         }
 
         .modal.active {
@@ -53,318 +55,317 @@
         html {
             scroll-behavior: smooth;
         }
+
+        .rank-number {
+            font-family: 'Inter', sans-serif;
+            -webkit-text-stroke: 1px #fff;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
 
-<body class="bg-gray-50 pb-24">
+<body class="bg-gray-50 pb-28">
 
     <!-- LOADER -->
-    <div id="page-loader" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
+    <div id="page-loader" class="fixed inset-0 bg-white z-[99999] flex flex-col items-center justify-center">
         <div class="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
         <p class="text-gray-500 text-sm font-medium animate-pulse">Cargando menú delicioso...</p>
     </div>
 
     <!-- HEADER (Sticky) -->
-    <header class="sticky top-0 z-40 bg-white shadow-sm transition-all duration-300" id="main-header">
-        <!-- Top Bar -->
-        <div class="flex items-center justify-between px-4 py-3">
-            <a href="index.html"
-                class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-                <i class="fa-solid fa-arrow-left text-lg text-slate-800"></i>
+    <header class="sticky top-0 z-50 bg-white" id="main-header">
+        <!-- Top Nav -->
+        <div class="flex items-center justify-between px-4 py-3 bg-white">
+            <a href="index.html" class="w-8 h-8 flex items-center justify-center transition text-slate-800">
+                <i class="fa-solid fa-chevron-left text-xl"></i>
             </a>
-            <div class="flex-1 text-center mx-4">
-                <h1 class="font-bold text-slate-800 text-base truncate" id="header-store-name">Cargando...</h1>
+
+            <!-- Search Bar Wrapper in Header (initially hidden or integrated? Let's do integrated like Didi) -->
+            <div class="flex-1 mx-3">
+                <div class="relative">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" placeholder="Buscar productos" id="global-search"
+                        oninput="filterProducts(this.value)"
+                        class="w-full bg-gray-100/80 rounded-full pl-9 pr-4 py-2.5 text-sm text-gray-700 font-medium focus:outline-none focus:bg-gray-100 transition">
+                </div>
             </div>
-            <div class="flex gap-3">
-                <button class="text-slate-800 hover:text-orange-500 transition"><i
-                        class="fa-solid fa-magnifying-glass"></i></button>
-                <button class="text-slate-800 hover:text-red-500 transition"><i
-                        class="fa-regular fa-heart"></i></button>
-            </div>
+
+            <button class="w-8 h-8 flex items-center justify-center text-slate-800">
+                <i class="fa-regular fa-heart text-xl"></i>
+            </button>
         </div>
 
-        <!-- Search Bar -->
-        <div class="px-4 pb-2">
-            <div class="relative">
-                <i
-                    class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" placeholder="Buscar productos"
-                    class="w-full bg-gray-100 rounded-full pl-9 pr-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200">
-            </div>
-        </div>
+        <!-- Info Mini Banner (Sticky context) - Optional, similar to Didi small summary if scrolled -->
     </header>
 
-    <!-- HERO / INFO SECTION -->
-    <div class="bg-white pb-4 mb-2">
-        <!-- Hero Image -->
-        <div class="relative h-40 w-full overflow-hidden">
-            <img id="store-hero" src="https://placehold.co/600x300" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-            <img id="store-logo" src="https://placehold.co/80"
-                class="absolute -bottom-6 left-4 w-16 h-16 rounded-lg border-2 border-white shadow-md z-10 bg-white">
-        </div>
-
-        <div class="mt-8 px-4">
-            <h2 class="text-2xl font-bold text-slate-900 leading-none mb-1" id="store-title">Nombre Tienda</h2>
-            <div class="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                <span class="flex items-center gap-1 text-orange-500 font-bold"><i class="fa-solid fa-star"></i> <span
-                        id="store-rating">4.5</span></span>
-                <span>•</span>
-                <span id="store-time">30-45 min</span>
-                <span>•</span>
-                <span id="store-shipping">Envío $15</span>
+    <!-- SHOP INFO SECTION -->
+    <div class="bg-white pb-2 mb-2">
+        <div class="px-4 pt-1 mb-4">
+            <!-- Time/Cost Badge -->
+            <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3 mb-4">
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold text-slate-900" id="store-time">-- Min</span>
+                    <div class="text-[10px] text-gray-400 flex items-center gap-1">
+                        <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                        <span id="store-shipping-text">Envío --</span>
+                    </div>
+                </div>
+                <span class="font-bold text-slate-800 text-sm" id="store-fee">MX$--</span>
             </div>
 
-            <!-- Promos Horizontal -->
-            <div id="promos-container" class="flex gap-3 overflow-x-auto no-scrollbar py-2">
-                <!-- Promo cards injected JS -->
+            <!-- Didi Club / Promo Banner Mock -->
+            <div class="bg-orange-100 rounded-lg p-3 flex justify-between items-center relative overflow-hidden">
+                <div class="relative z-10">
+                    <div class="flex items-center gap-1 mb-0.5">
+                        <i class="fa-solid fa-ticket text-orange-600 text-xs"></i>
+                        <span class="text-xs font-bold text-orange-700">Envío gratis</span>
+                    </div>
+                    <span class="text-[10px] font-bold bg-orange-600 text-white px-1.5 py-0.5 rounded">DiDi Club</span>
+                    <span class="text-[10px] text-orange-800 font-medium ml-1">Registrarse</span>
+                </div>
+                <!-- Decor Circles -->
+                <div class="absolute -right-2 -bottom-4 w-12 h-12 bg-orange-200 rounded-full blur-md"></div>
             </div>
         </div>
     </div>
 
-    <!-- CATEGORY TABS (Sticky below header) -->
-    <div class="bg-white border-b border-gray-100 sticky top-[98px] z-30 shadow-sm" id="category-tabs">
-        <div class="flex overflow-x-auto no-scrollbar px-4" id="categories-list">
-            <!-- Injected JS -->
-        </div>
-    </div>
+    <!-- MAIN SCROLLABLE CONTENT -->
+    <main class="min-h-screen" id="main-container">
 
-    <!-- MENU CONTENT -->
-    <main class="active-section px-4 pt-4 min-h-screen" id="menu-container">
-        <!-- Menu Sections Injected JS -->
-        <div class="text-center py-10 text-gray-400">
-            <i class="fa-solid fa-utensils text-2xl mb-2"></i>
-            <p>Elige una categoría para ver el menú.</p>
+        <!-- PROMOTIONS SECTION (Horizontal) -->
+        <div id="promos-section" class="mb-6 pl-4">
+            <h3 class="font-bold text-lg text-slate-900 mb-3">Promociones</h3>
+            <div id="promos-container" class="flex gap-3 overflow-x-auto no-scrollbar pr-4">
+                <!-- JS Injected -->
+            </div>
         </div>
+
+        <!-- FAVORITES SECTION (Top 3) -->
+        <div id="favorites-section" class="mb-6 pl-4">
+            <h3 class="font-bold text-lg text-slate-900 mb-3">Favoritos</h3>
+            <div id="favorites-container" class="flex gap-3 overflow-x-auto no-scrollbar pr-4">
+                <!-- JS Injected -->
+            </div>
+        </div>
+
+        <!-- CATEGORY TABS (Sticky) -->
+        <div class="sticky top-[70px] z-40 bg-white pt-2 pb-3 pl-4 border-b border-gray-100/50" id="category-tabs">
+            <div class="flex gap-2 overflow-x-auto no-scrollbar pr-4" id="categories-list">
+                <!-- JS Injected Pills -->
+            </div>
+        </div>
+
+        <!-- MENU ITEMS LIST -->
+        <div class="px-4 pt-4 pb-20 space-y-8" id="menu-container">
+            <!-- JS Injected -->
+            <div class="text-center py-10 text-gray-400">
+                <i class="fa-solid fa-utensils text-2xl mb-2"></i>
+                <p>Cargando menú...</p>
+            </div>
+        </div>
+
     </main>
 
 
-    <!-- FLOATING CART BAR -->
+    <!-- FLOATING CART BUTTON -->
     <div id="floating-cart"
-        class="fixed bottom-4 left-4 right-4 bg-orange-600 text-white rounded-2xl shadow-xl p-4 flex justify-between items-center z-40 transform translate-y-24 transition-transform duration-300 cursor-pointer"
+        class="fixed bottom-6 left-4 right-4 bg-orange-600 text-white rounded-full shadow-2xl p-0 flex justify-between items-center z-50 transform translate-y-32 transition-transform duration-300 cursor-pointer h-14 overflow-hidden"
         onclick="openCheckout()">
-        <div class="flex items-center gap-3">
-            <div class="bg-white/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-                id="cart-count">0</div>
-            <div class="flex flex-col leading-tight">
-                <span class="font-bold text-sm" id="cart-total">$0.00</span>
-                <span class="text-[10px] text-orange-100">Ver pedido</span>
-            </div>
+
+        <div class="h-full pl-6 flex flex-col justify-center">
+            <span class="font-extrabold text-base" id="cart-total">$0.00</span>
+            <span class="text-[10px] text-orange-100 font-medium leading-none" id="cart-savings">Ahorraste $0.00</span>
         </div>
-        <span class="font-bold text-sm">Pagar <i class="fa-solid fa-chevron-right ml-1 text-xs"></i></span>
+
+        <div class="h-full pr-6 flex items-center gap-2 bg-black/10 px-6">
+            <span class="font-bold text-sm">Carrito</span>
+            <div class="bg-white text-orange-600 w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs"
+                id="cart-count">0</div>
+        </div>
     </div>
 
 
     <!-- PRODUCT DETAIL MODAL -->
-    <div id="product-modal" class="modal fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-        <div
-            class="modal-content bg-white w-full max-w-md rounded-t-3xl h-[90vh] overflow-y-auto relative flex flex-col">
-            <button onclick="closeProductModal()"
-                class="absolute top-4 left-4 z-10 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center text-slate-800 shadow-sm"><i
-                    class="fa-solid fa-xmark"></i></button>
+    <div id="product-modal"
+        class="modal fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-[2px]">
+        <div class="modal-content bg-white w-full max-w-md rounded-t-[2rem] h-[92vh] flex flex-col relative shadow-2xl">
 
-            <!-- Product Image -->
-            <div class="h-64 shrink-0 relative">
+            <!-- Close Btn -->
+            <button onclick="closeProductModal()"
+                class="absolute top-4 left-4 z-20 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-slate-900">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <button
+                class="absolute top-4 right-4 z-20 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-slate-900">
+                <i class="fa-solid fa-share-nodes text-sm"></i>
+            </button>
+
+            <!-- Image Header -->
+            <div class="h-72 w-full shrink-0 relative bg-gray-100">
                 <img id="detail-img" src="" class="w-full h-full object-cover">
+                <div class="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
             </div>
 
-            <div class="p-5 flex-1 flex flex-col">
+            <!-- Content -->
+            <div class="px-6 flex-1 overflow-y-auto no-scrollbar -mt-6 relative z-10">
                 <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-xl font-bold text-slate-900" id="detail-title">Nombre Producto</h3>
-                    <span class="text-xl font-bold text-orange-600" id="detail-price">$0.00</span>
-                </div>
-                <p class="text-gray-500 text-sm mb-6 leading-relaxed" id="detail-desc">Descripción detallada del
-                    producto...</p>
-
-                <!-- Ops (Upsells placeholder) -->
-                <div class="mb-6">
-                    <h4 class="font-bold text-slate-800 text-sm mb-3">Comprado habitualmente con:</h4>
-                    <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar" id="upsell-container">
-                        <!-- Upsells injected -->
-                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900 leading-tight w-[70%]" id="detail-title">Nombre</h2>
                 </div>
 
-                <!-- Footer Actions -->
-                <div class="mt-auto pt-4 border-t border-gray-100 flex items-center gap-4">
-                    <div class="flex items-center border border-gray-300 rounded-full px-2 py-1 gap-4">
-                        <button onclick="adjustDetailQty(-1)"
-                            class="w-8 h-8 flex items-center justify-center text-gray-500 text-lg font-bold hover:text-orange-500 disabled:opacity-30">-</button>
-                        <span id="detail-qty" class="font-bold text-lg w-4 text-center">1</span>
-                        <button onclick="adjustDetailQty(1)"
-                            class="w-8 h-8 flex items-center justify-center text-gray-500 text-lg font-bold hover:text-orange-500">+</button>
-                    </div>
-                    <button onclick="addToCartFromDetail()"
-                        class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-full shadow-lg shadow-orange-500/30 active:scale-95 transition">
-                        Agregar <span id="detail-btn-total">$0.00</span>
-                    </button>
+                <p class="text-gray-500 text-sm leading-relaxed mb-6" id="detail-desc">Descripción...</p>
+
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-3xl font-bold text-slate-900" id="detail-price">$0.00</span>
+                    <!-- Old Price if exists -->
                 </div>
+
+                <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                    <h4 class="font-bold text-sm text-slate-800 mb-2">Adicionales populares</h4>
+                    <p class="text-xs text-gray-400"> (Mock no funcional en demo) </p>
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="p-4 border-t border-gray-100 flex items-center gap-4 bg-white pb-8">
+                <div class="flex items-center border border-gray-200 rounded-full h-12 px-2 shadow-sm">
+                    <button onclick="adjustDetailQty(-1)"
+                        class="w-10 h-full flex items-center justify-center text-slate-600 hover:text-orange-600 disabled:opacity-30 text-xl font-bold">-</button>
+                    <span id="detail-qty" class="w-6 text-center font-bold text-slate-800">1</span>
+                    <button onclick="adjustDetailQty(1)"
+                        class="w-10 h-full flex items-center justify-center text-slate-600 hover:text-orange-600 text-xl font-bold">+</button>
+                </div>
+                <button onclick="addToCartFromDetail()"
+                    class="flex-1 h-12 bg-orange-600 text-white font-bold rounded-full shadow-xl shadow-orange-500/20 active:scale-95 transition flex justify-between px-6 items-center">
+                    <span>Agregar</span>
+                    <span id="detail-btn-total">$0.00</span>
+                </button>
             </div>
         </div>
     </div>
 
 
-    <!-- CHECKOUT MODAL (Full Screen) -->
-    <div id="checkout-modal" class="modal fixed inset-0 z-50 bg-gray-50 overflow-y-auto">
+    <!-- CHECKOUT MODAL -->
+    <div id="checkout-modal" class="modal fixed inset-0 z-[70] bg-gray-50 overflow-y-auto">
         <!-- Header -->
-        <div class="sticky top-0 bg-white border-b px-4 py-3 flex items-center gap-4 shadow-sm z-10">
-            <button onclick="closeCheckout()" class="text-slate-800"><i
-                    class="fa-solid fa-arrow-left text-lg"></i></button>
-            <h2 class="font-bold text-lg">Enviar pedido</h2>
+        <div class="sticky top-0 bg-white px-4 py-4 flex items-center gap-4 shadow-sm z-10">
+            <button onclick="closeCheckout()" class="text-slate-900 w-8 h-8 flex items-center justify-center -ml-2"><i
+                    class="fa-solid fa-arrow-left text-xl"></i></button>
+            <h2 class="font-bold text-lg">Tu pedido</h2>
         </div>
 
-        <div class="p-4 bg-white mb-2">
-            <!-- Address Row -->
-            <div
-                class="flex justify-between items-center mb-4 cursor-pointer hover:bg-gray-50 p-2 -mx-2 rounded-lg transition">
-                <div class="flex items-start gap-3 w-full">
-                    <i class="fa-solid fa-location-dot text-orange-500 mt-1"></i>
-                    <div class="flex-1">
-                        <p class="font-bold text-sm" id="checkout-address">Seleccionar dirección...</p>
-                        <p class="text-xs text-gray-400">Agregar notas para la entrega</p>
+        <div class="p-4 space-y-4 pb-32">
+
+            <!-- Address Card -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                        <i class="fa-solid fa-location-dot"></i>
                     </div>
-                    <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+                    <div>
+                        <p class="font-bold text-sm text-slate-900" id="checkout-address">Casa</p>
+                        <p class="text-xs text-gray-400">Agregar detalles de entrega</p>
+                    </div>
                 </div>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
             </div>
 
-            <!-- Time Row -->
-            <div class="flex justify-between items-center py-3 border-t border-gray-100">
-                <div class="flex items-center gap-3">
-                    <i class="fa-regular fa-clock text-gray-400"></i>
-                    <span class="font-bold text-sm text-slate-800" id="checkout-time">35 - 50 min</span>
-                </div>
-            </div>
-
-            <!-- Payment Row -->
-            <div class="flex justify-between items-center py-3 border-t border-gray-100 cursor-pointer"
-                onclick="openPaymentMethods()">
-                <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-money-bill-wave text-green-500"></i> <!-- Icono cambia segun metodo -->
-                    <span class="font-bold text-sm text-slate-800" id="checkout-payment-label">Pago en efectivo</span>
-                </div>
-                <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-        </div>
-
-        <!-- Order Items -->
-        <div class="bg-white p-4 mb-2">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="font-bold text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-store text-gray-400 text-xs"></i> <span id="checkout-store-name">Tienda</span>
+            <!-- Items -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+                <h3 class="font-bold text-base mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-shop text-gray-400 text-xs"></i> <span id="checkout-store-name">Tienda</span>
                 </h3>
+                <div id="checkout-items-list" class="space-y-6"></div>
             </div>
-            <div id="checkout-items-list" class="space-y-4">
-                <!-- Items injected -->
-            </div>
-        </div>
 
-        <!-- Tip Section (Agradecimiento) -->
-        <div class="bg-white p-4 mb-2">
-            <div class="flex items-center gap-2 mb-3">
-                <h3 class="font-bold text-sm">Agradecimiento</h3>
-                <i class="fa-regular fa-circle-question text-gray-400 text-xs"></i>
+            <!-- Tip -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-sm">Propina para el repartidor</h3>
+                    <div class="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full">100% para
+                        ellos</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="setTip(0)"
+                        class="tip-btn flex-1 py-3 rounded-xl bg-gray-100 text-xs font-bold text-gray-500 border-2 border-transparent transition">No</button>
+                    <button onclick="setTip(10)"
+                        class="tip-btn flex-1 py-3 rounded-xl bg-orange-50 text-xs font-bold text-orange-600 border-2 border-orange-500 transition">10%</button>
+                    <button onclick="setTip(15)"
+                        class="tip-btn flex-1 py-3 rounded-xl bg-gray-100 text-xs font-bold text-gray-500 border-2 border-transparent transition">15%</button>
+                    <button onclick="setTip(20)"
+                        class="tip-btn flex-1 py-3 rounded-xl bg-gray-100 text-xs font-bold text-gray-500 border-2 border-transparent transition">20%</button>
+                </div>
             </div>
-            <p class="text-xs text-gray-400 mb-3">Apoyo para tu repartidor. Recibirá el 100%.</p>
-            <div class="flex gap-2">
-                <button onclick="setTip(0)"
-                    class="tip-btn flex-1 py-2 rounded-lg bg-gray-100 text-xs font-bold text-gray-600 border border-transparent active:border-orange-500 active:bg-orange-50 active:text-orange-600 transition">No</button>
-                <button onclick="setTip(5)"
-                    class="tip-btn flex-1 py-2 rounded-lg bg-gray-100 text-xs font-bold text-gray-600 border border-transparent active:border-orange-500 active:bg-orange-50 active:text-orange-600 transition">5%</button>
-                <button onclick="setTip(10)"
-                    class="tip-btn flex-1 py-2 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-bold transition">🤩
-                    10%</button>
-                <button onclick="setTip(15)"
-                    class="tip-btn flex-1 py-2 rounded-lg bg-gray-100 text-xs font-bold text-gray-600 border border-transparent active:border-orange-500 active:bg-orange-50 active:text-orange-600 transition">15%</button>
-            </div>
-        </div>
 
-        <!-- Summary Costs -->
-        <div class="bg-white p-4 mb-24">
-            <div class="space-y-2 text-sm text-gray-600 mb-4">
-                <div class="flex justify-between">
-                    <span>Total en productos</span>
+            <!-- Summary -->
+            <div class="space-y-2 py-2">
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>Subtotal</span>
                     <span id="summ-products">$0.00</span>
                 </div>
-                <div class="flex justify-between text-orange-500" id="summ-discount-row">
-                    <span>Descuento</span>
-                    <span id="summ-discount">-$0.00</span>
-                </div>
-                <div class="flex justify-between font-bold text-slate-900 border-t pt-2 mt-2">
-                    <span>Tarifa de entrega</span>
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>Envío</span>
                     <span id="summ-shipping">$0.00</span>
                 </div>
-                <div class="flex justify-between">
-                    <span>Tarifa de servicio <i class="fa-solid fa-circle-info text-[10px] text-gray-300"></i></span>
-                    <span>$6.00</span>
-                </div>
-                <div class="flex justify-between text-gray-400 italic font-medium">
+                <div class="flex justify-between text-sm text-gray-600">
                     <span>Propina</span>
                     <span id="summ-tip">$0.00</span>
                 </div>
-            </div>
-
-            <!-- DiDi Club Banner Mock -->
-            <div class="bg-orange-100 rounded-lg p-3 flex justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-6 h-4 bg-orange-500 rounded-sm"></div>
-                    <span class="text-xs font-bold text-orange-800 leading-tight">Ahorra con Club<br>MX$200 al
-                        mes</span>
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>Tarifa de servicio</span>
+                    <span>$6.00</span>
                 </div>
-                <span class="font-bold text-sm text-slate-800">MX$69</span>
-                <!-- Checkbox mock -->
+                <div class="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-gray-200 mt-2">
+                    <span>Total</span>
+                    <span id="final-total">$0.00</span>
+                </div>
             </div>
         </div>
 
-        <!-- Footer Action -->
-        <div
-            class="fixed bottom-0 left-0 right-0 bg-white p-4 items-center flex justify-between shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-            <div>
-                <h3 class="font-bold text-2xl text-slate-900" id="final-total">$0.00</h3>
-                <span class="text-xs text-orange-500 font-bold" id="final-savings">Ahorraste $0.00</span>
+        <!-- Sticky Pay Button -->
+        <div class="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-[0_-5px_30px_rgba(0,0,0,0.1)] rounded-t-3xl">
+            <div class="flex items-center gap-3 mb-4 cursor-pointer" onclick="openPaymentMethods()">
+                <div class="w-8 h-5 rounded border border-gray-300 flex items-center justify-center bg-white shadow-sm">
+                    <i class="fa-solid fa-money-bill text-green-600 text-xs"></i>
+                </div>
+                <span class="text-xs font-medium text-slate-700 underline decoration-dotted"
+                    id="checkout-payment-label">Efectivo</span>
+                <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i>
             </div>
             <button onclick="submitOrder()"
-                class="bg-orange-600 text-white font-bold px-10 py-3.5 rounded-full shadow-lg shadow-orange-500/30 hover:bg-orange-700 transition active:scale-95">Pagar</button>
+                class="w-full bg-orange-600 text-white font-bold py-4 rounded-full shadow-lg shadow-orange-500/30 text-lg hover:bg-orange-700 active:scale-95 transition">
+                Realizar pedido
+            </button>
         </div>
     </div>
 
-
-    <!-- PAYMENT METHOD SHEET -->
+    <!-- PAYMENT SELECTION -->
     <div id="payment-modal"
-        class="modal fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm">
-        <div class="modal-content bg-white w-full max-w-md rounded-t-3xl p-6 min-h-[40vh]">
-            <div class="flex items-center gap-3 mb-6">
-                <button onclick="closePaymentMethods()"><i class="fa-solid fa-arrow-left"></i></button>
-                <h3 class="font-bold text-lg">Método de pago</h3>
-            </div>
-
-            <div class="space-y-4">
+        class="modal fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+        <div class="modal-content bg-white w-full max-w-md rounded-t-3xl p-6 pb-10">
+            <h3 class="font-bold text-lg mb-6">Método de pago</h3>
+            <div class="space-y-3">
                 <div onclick="selectPayment('Efectivo')"
-                    class="flex items-center justify-between p-4 border border-gray-200 rounded-2xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition group">
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-6 bg-yellow-500 rounded text-white flex items-center justify-center text-xs ml-1">
-                            <i class="fa-solid fa-money-bill"></i></div>
-                        <span class="font-medium text-slate-800">Efectivo</span>
-                    </div>
-                    <i class="fa-solid fa-circle-check text-orange-500 opacity-0 group-hover:opacity-100"></i>
+                    class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-orange-500 bg-white cursor-pointer">
+                    <i class="fa-solid fa-money-bill text-green-500 text-xl"></i>
+                    <span class="font-bold text-slate-700">Efectivo</span>
                 </div>
-
                 <div onclick="selectPayment('Tarjeta')"
-                    class="flex items-center justify-between p-4 border border-gray-200 rounded-2xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition group">
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-6 bg-blue-600 rounded text-white flex items-center justify-center text-xs ml-1">
-                            <i class="fa-brands fa-cc-visa"></i></div>
-                        <span class="font-medium text-slate-800">Tarjeta (Nuevo)</span>
-                    </div>
-                    <i class="fa-solid fa-circle-check text-orange-500 opacity-0 group-hover:opacity-100"></i>
+                    class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-orange-500 bg-white cursor-pointer">
+                    <i class="fa-regular fa-credit-card text-blue-500 text-xl"></i>
+                    <span class="font-bold text-slate-700">Tarjeta (Nuevo)</span>
                 </div>
             </div>
-
             <button onclick="closePaymentMethods()"
-                class="w-full mt-8 bg-orange-600 text-white font-bold py-3 rounded-xl">Confirmar</button>
+                class="w-full mt-6 bg-gray-100 text-slate-600 font-bold py-3 rounded-xl">Cancelar</button>
         </div>
     </div>
-
 
     <script>
         const API_URL = "https://menuia.onrender.com";
@@ -373,11 +374,12 @@
         let socket;
         let SHOP_DATA = null;
         let CART = [];
-        let CURRENT_ITEM = null; // For detail modal
+        let CURRENT_ITEM = null;
         let SELECTED_TIP = 10;
         let SELECTED_PAYMENT = 'Efectivo';
-        let USER_ADDRESS = "Ubicación actual"; // Placeholder
-        let USER_PHONE = "5500000000"; // Placeholder or from localStorage
+        let USER_ADDRESS = "Ubicación actual";
+        let USER_PHONE = "5500000000";
+        let ACTIVE_CATEGORY = '';
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -389,14 +391,13 @@
                 return;
             }
 
-            // check user (simple)
             const userData = JSON.parse(localStorage.getItem('menuia_user_data'));
             if (userData) {
                 USER_ADDRESS = userData.address || "Mi ubicación";
                 USER_PHONE = userData.phone;
             }
 
-            initSocket(slug); // Pass slug to join room
+            initSocket(slug);
             fetchShop(slug);
         });
 
@@ -404,22 +405,15 @@
             try {
                 socket = io(API_URL);
                 socket.on('connect', () => {
-                    console.log('Socket Status: Connected');
                     if (slug) socket.emit('join-store', slug);
                 });
-
-                // Listen for order creation success
                 socket.on('order-created-client', (order) => {
-                    console.log("Order confirmed by server:", order);
-                    alert(`¡Pedido Enviado con Éxito! 🎉\nRef: ${order.ref}\nTu comida se está preparando.`);
-
-                    // Clear and Redirect
+                    alert(`¡Pedido Enviado! 🎉\nRef: ${order.ref}`);
                     CART = [];
                     updateCartUI();
                     closeCheckout();
                     window.location.href = 'index.html';
                 });
-
             } catch (e) { console.error("Socket error", e); }
         }
 
@@ -431,47 +425,97 @@
                 renderShop();
                 document.getElementById('page-loader').classList.add('hidden');
             } catch (e) {
-                alert("Error cargando la tienda: " + e.message);
-                window.location.href = 'index.html';
+                alert("Error cargando la tienda");
+                // window.location.href = 'index.html';
             }
         }
 
-        // --- RENDER ---
         function renderShop() {
             const config = SHOP_DATA.config;
             const menu = SHOP_DATA.menu;
 
-            // Header & Hero
-            document.getElementById('header-store-name').innerText = config.name;
-            document.getElementById('store-title').innerText = config.name;
-            document.getElementById('store-hero').src = config.heroImage || 'https://placehold.co/600x300';
-            document.getElementById('store-logo').src = config.logo || 'https://placehold.co/80';
-            if (config.hours) {
-                document.getElementById('store-time').innerText = `${config.hours.open}:00 - ${config.hours.close}:00`;
+            // Info
+            document.getElementById('store-time').innerText = "30-45 Min";
+            document.getElementById('store-shipping-text').innerText = `Envío $${config.shipping?.costPerKm || 15}`;
+            document.getElementById('store-fee').innerText = `MX$${config.shipping?.costPerKm || 15}.00`;
+            document.getElementById('checkout-store-name').innerText = config.name;
+
+
+            // 1. PROMOTIONS
+            const promos = menu.promos || [];
+            if (promos.length > 0) {
+                document.getElementById('promos-container').innerHTML = promos.map(p => `
+                    <div onclick='openDetail(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="min-w-[260px] h-36 bg-orange-50 rounded-lg relative overflow-hidden cursor-pointer flex border border-orange-100">
+                        <div class="w-[55%] p-3 flex flex-col justify-center relative z-10">
+                            <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full self-start mb-2 shadow-sm">25% OFF</span>
+                            <h4 class="font-bold text-slate-800 text-sm leading-tight line-clamp-2 mb-1">${p.name}</h4>
+                            <div class="flex items-center gap-2">
+                                <span class="text-orange-600 font-bold">$${p.price}</span>
+                                ${p.oldPrice ? `<span class="text-[10px] text-gray-400 line-through">$${p.oldPrice}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="w-[45%] h-full relative">
+                            <!-- Decor shape -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-orange-50 to-transparent z-10"></div>
+                            <img src="${p.image || 'https://placehold.co/200'}" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('promos-section').style.display = 'none';
             }
 
-            // Categories
+            // 2. FAVORITES (Top 3)
+            // Mock ranking based on "popular" or just first 3 of clasicos
+            const allItems = [...(menu.clasicos || []), ...(menu.speciales || [])];
+            // Take first 3 for demo
+            const favorites = allItems.slice(0, 3);
+
+            if (favorites.length > 0) {
+                document.getElementById('favorites-container').innerHTML = favorites.map((p, idx) => `
+                    <div onclick='openDetail(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="min-w-[140px] w-[140px] cursor-pointer relative">
+                         <div class="relative w-full h-32 rounded-xl overflow-hidden mb-2">
+                            <img src="${p.image || 'https://placehold.co/150'}" class="w-full h-full object-cover">
+                            <!-- RANK NUMBER -->
+                            <span class="absolute -bottom-4 -left-1 text-[80px] font-bold text-green-500 leading-none rank-number drop-shadow-md z-10 italic">${idx + 1}</span>
+                         </div>
+                         <div class="pl-2 pt-2">
+                            <h4 class="font-bold text-slate-900 text-sm text-center leading-snug line-clamp-1">${p.name}</h4>
+                         </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('favorites-section').style.display = 'none';
+            }
+
+
+            // 3. CATEGORIES (Pills)
+            // Order: Promo, Especiales, Clasicos, Extras
+            const cats = ['promos', 'especiales', 'clasicos', 'extras'];
             const catContainer = document.getElementById('categories-list');
             const menuContainer = document.getElementById('menu-container');
-            const cats = ['promos', 'especiales', 'clasicos', 'extras']; // Ordering
 
             let catHtml = '';
             let menuHtml = '';
 
-            cats.forEach((key, index) => {
+            cats.forEach(key => {
                 const items = menu[key] || [];
                 const title = config.categoryTitles?.[key] || key.charAt(0).toUpperCase() + key.slice(1);
 
                 if (items.length > 0) {
-                    // Tab
-                    catHtml += `<a href="#cat-${key}" class="px-3 py-3 text-sm font-medium text-gray-500 hover:text-orange-600 whitespace-nowrap border-b-2 border-transparent hover:border-orange-500 transition">${title}</a>`;
+                    // Pill
+                    catHtml += `
+                        <button onclick="scrollToCat('${key}')" id="btn-cat-${key}" class="cat-pill whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition bg-gray-100 text-gray-500 hover:bg-gray-200">
+                            ${title}
+                        </button>
+                    `;
 
                     // Section
                     menuHtml += `
-                        <div id="cat-${key}" class="mb-8 scroll-mt-32">
-                            <h3 class="font-bold text-lg text-slate-900 mb-4 capitalize">${title}</h3>
+                        <div id="cat-section-${key}" class="scroll-mt-36 product-section">
+                            <h3 class="font-extrabold text-xl text-slate-900 mb-4 capitalize">${title}</h3>
                             <div class="space-y-6">
-                                ${items.map(item => renderProductCard(item, key)).join('')}
+                                ${items.map(item => renderFullCard(item)).join('')}
                             </div>
                         </div>
                     `;
@@ -481,78 +525,88 @@
             catContainer.innerHTML = catHtml;
             menuContainer.innerHTML = menuHtml;
 
-            // Render Promos at Top (Horizontal)
-            const promos = menu.promos || [];
-            if (promos.length > 0) {
-                document.getElementById('promos-container').innerHTML = promos.map(p => `
-                    <div onclick='openDetail(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="min-w-[200px] h-32 rounded-xl overflow-hidden relative cursor-pointer shadow-sm">
-                        <img src="${p.image || 'https://placehold.co/200x120'}" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-black/40 flex flex-col justify-end p-2">
-                            <span class="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-start mb-1">Promo</span>
-                            <span class="text-white font-bold text-sm leading-tight truncate">${p.name}</span>
+            // Highlight first cat
+            if (cats.length > 0) setActiveCat(cats[0]);
+        }
+
+
+        function renderFullCard(item) {
+            const jsonItem = JSON.stringify(item).replace(/'/g, "&#39;");
+            return `
+                <div class="flex gap-3 justify-between group item-card-dom" data-name="${item.name.toLowerCase()}" onclick='openDetail(${jsonItem})'>
+                    <!-- Text Info -->
+                    <div class="flex-1 flex flex-col justify-start">
+                        <h4 class="font-bold text-slate-800 text-[15px] mb-1 leading-snug">${item.name}</h4>
+                        <p class="text-xs text-gray-500 line-clamp-2 leading-normal mb-2 pr-2">${item.desc || 'Descripción del platillo disponible para visualización.'}</p>
+                        <div class="mt-auto flex items-center gap-2">
+                            <span class="font-bold text-slate-900 text-base">$${parseFloat(item.price).toFixed(2)}</span>
+                            ${item.oldPrice ? `<span class="text-xs text-slate-400 line-through font-normal">$${item.oldPrice}</span>` : ''}
                         </div>
                     </div>
-                 `).join('');
-            } else {
-                document.getElementById('promos-container').style.display = 'none';
+
+                    <!-- Image & Add Btn -->
+                    <div class="relative w-32 h-28 shrink-0">
+                         <img src="${item.image || 'https://placehold.co/150'}" class="w-full h-full object-cover rounded-xl bg-gray-100">
+                         <!-- Add Button Absolute -->
+                         <button class="absolute bottom-[-8px] right-[-8px] w-9 h-9 bg-white rounded-full shadow-md border border-gray-100 flex items-center justify-center text-orange-600 active:scale-90 transition">
+                             <i class="fa-solid fa-plus text-sm font-bold"></i>
+                         </button>
+                    </div>
+                </div>
+                <hr class="border-gray-50/50 last:hidden">
+             `;
+        }
+
+        // --- INTERACTION ---
+        function scrollToCat(key) {
+            const el = document.getElementById(`cat-section-${key}`);
+            if (el) {
+                // Offset calculation (header + sticky tabs) = approx 120px
+                const y = el.getBoundingClientRect().top + window.scrollY - 120;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+                setActiveCat(key);
             }
         }
 
-        function renderProductCard(item, category) {
-            // Check image
-            const img = item.image || 'https://placehold.co/100';
-            const price = parseFloat(item.price).toFixed(2);
+        function setActiveCat(key) {
+            // Reset all
+            document.querySelectorAll('.cat-pill').forEach(b => {
+                b.className = "cat-pill whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition bg-gray-100 text-gray-500 hover:bg-gray-200";
+            });
+            // Activate one
+            const btn = document.getElementById(`btn-cat-${key}`);
+            if (btn) {
+                btn.className = "cat-pill whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-bold transition bg-orange-600 text-white shadow-md shadow-orange-500/30";
+                // Scroll pill into view
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+            ACTIVE_CATEGORY = key;
+        }
 
-            // Serialize for click handler safely
-            const jsonItem = JSON.stringify(item).replace(/'/g, "&#39;");
-
-            return `
-                <div class="flex gap-4 cursor-pointer group" onclick='openDetail(${jsonItem})'>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-slate-800 text-base mb-1 group-hover:text-orange-600 transition">${item.name}</h4>
-                        <p class="text-gray-500 text-xs line-clamp-2 leading-relaxed mb-2">${item.desc || 'Delicioso platillo preparado al momento.'}</p>
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-slate-900">$${price}</span>
-                            ${item.oldPrice ? `<span class="text-xs text-gray-400 line-through">$${item.oldPrice}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="w-28 h-28 relative shrink-0">
-                        <img src="${img}" class="w-full h-full object-cover rounded-xl shadow-sm border border-gray-100">
-                        <button class="absolute bottom-[-10px] right-[-5px] w-8 h-8 rounded-full bg-white text-orange-600 shadow-md flex items-center justify-center font-bold text-lg border border-gray-100 transition transform hover:scale-110">
-                            <i class="fa-solid fa-plus text-sm"></i>
-                        </button>
-                    </div>
-                </div>
-                <hr class="border-gray-100 last:hidden">
-            `;
+        function filterProducts(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('.item-card-dom').forEach(el => {
+                const name = el.getAttribute('data-name');
+                if (name.includes(q)) {
+                    el.style.display = 'flex';
+                    // also show the hr
+                    if (el.nextElementSibling && el.nextElementSibling.tagName === 'HR') el.nextElementSibling.style.display = 'block';
+                } else {
+                    el.style.display = 'none';
+                    if (el.nextElementSibling && el.nextElementSibling.tagName === 'HR') el.nextElementSibling.style.display = 'none';
+                }
+            });
         }
 
 
-        // --- PRODUCT DETAIL ---
+        // --- MODALS & CART ---
         function openDetail(item) {
             CURRENT_ITEM = { ...item, qty: 1 };
-
             document.getElementById('detail-title').innerText = item.name;
             document.getElementById('detail-price').innerText = '$' + parseFloat(item.price).toFixed(2);
             document.getElementById('detail-desc').innerText = item.desc || "Sin descripción";
             document.getElementById('detail-img').src = item.image || 'https://placehold.co/400';
-
-            // Reset logic
             updateDetailTotal();
-
-            // Upsells (Mock or random from menu)
-            const allItems = [...(SHOP_DATA.menu.clasicos || []), ...(SHOP_DATA.menu.extras || [])];
-            const upsells = allItems.sort(() => 0.5 - Math.random()).slice(0, 4);
-
-            document.getElementById('upsell-container').innerHTML = upsells.map(u => `
-                <div class="min-w-[100px] flex flex-col gap-1 cursor-pointer" onclick='addUpsell("${u.name}", ${u.price})'>
-                    <img src="${u.image || 'https://placehold.co/100'}" class="w-20 h-20 rounded-lg object-cover shadow-sm bg-gray-100 m-auto">
-                    <span class="text-xs font-medium truncate text-center">${u.name}</span>
-                    <span class="text-xs font-bold text-center">$${u.price}</span>
-                    <button class="text-[10px] bg-orange-100 text-orange-600 rounded-full px-2 py-0.5 mx-auto font-bold">+ Agregar</button>
-                </div>
-            `).join('');
-
             document.getElementById('product-modal').classList.add('active');
         }
 
@@ -573,12 +627,6 @@
             document.getElementById('detail-btn-total').innerText = `$${total}`;
         }
 
-        function addUpsell(name, price) {
-            // Quick add to cart logic (simplified)
-            // Ideally should be added to the current configuration, but for simplicity we treat as separate Item or just message
-            alert(`Agregado ${name} (Simulación). En versión final esto se suma.`);
-        }
-
         function addToCartFromDetail() {
             const total = parseFloat(CURRENT_ITEM.price) * CURRENT_ITEM.qty;
             const cartItem = {
@@ -589,73 +637,63 @@
                 total: total,
                 image: CURRENT_ITEM.image
             };
-
             CART.push(cartItem);
             updateCartUI();
             closeProductModal();
         }
 
-
-        // --- CART UI ---
         function updateCartUI() {
             const count = CART.reduce((acc, i) => acc + i.qty, 0);
             const total = CART.reduce((acc, i) => acc + i.total, 0);
-
             const bar = document.getElementById('floating-cart');
-            if (count > 0) {
-                bar.classList.remove('translate-y-24');
-            } else {
-                bar.classList.add('translate-y-24');
-            }
 
             document.getElementById('cart-count').innerText = count;
             document.getElementById('cart-total').innerText = `$${total.toFixed(2)}`;
 
-            // Sync checkout summaries
+            // Show/Hide Bar
+            if (count > 0) {
+                bar.classList.remove('translate-y-32');
+            } else {
+                bar.classList.add('translate-y-32');
+            }
+
+            // Sync checkout
             document.getElementById('summ-products').innerText = `$${total.toFixed(2)}`;
-
-            // Calc full totals
-            const shipping = configSafe().shipping?.costPerKm || 15; // Mock logic
+            const shipping = 15;
             const service = 6;
-            const discount = 0; // Logic for promos could go here
-
-            document.getElementById('summ-shipping').innerText = `$${shipping.toFixed(2)}`;
-
             const tipVal = (total * (SELECTED_TIP / 100));
+            document.getElementById('summ-shipping').innerText = `$${shipping.toFixed(2)}`;
             document.getElementById('summ-tip').innerText = `$${tipVal.toFixed(2)}`;
 
-            const final = total + shipping + service + tipVal - discount;
+            const final = total + shipping + service + tipVal;
             document.getElementById('final-total').innerText = `$${final.toFixed(2)}`;
         }
-
 
         // --- CHECKOUT ---
         function openCheckout() {
             document.getElementById('checkout-modal').classList.add('active');
 
-            // Render Items
             const list = document.getElementById('checkout-items-list');
             list.innerHTML = CART.map(i => `
                 <div class="flex gap-3">
-                     <img src="${i.image || 'https://placehold.co/60'}" class="w-12 h-12 rounded bg-gray-100 object-cover">
+                     <img src="${i.image || 'https://placehold.co/60'}" class="w-14 h-14 rounded-lg bg-gray-100 object-cover border border-gray-100">
                      <div class="flex-1">
-                        <div class="flex justify-between items-start">
-                            <span class="text-sm font-medium text-slate-800 line-clamp-1">${i.name}</span>
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">${i.name}</span>
                             <span class="text-sm font-bold">$${i.total.toFixed(2)}</span>
                         </div>
-                        <p class="text-xs text-gray-400">Sin notas</p>
-                        <div class="flex items-center gap-3 mt-1">
-                             <button onclick="removeItem(${i.id})" class="text-xs text-red-400 font-bold">Eliminar</button>
-                             <div class="border rounded px-2 text-xs font-bold text-slate-700 bg-gray-50">x${i.qty}</div>
+                        <div class="flex items-center gap-3">
+                             <div class="flex items-center border rounded px-1.5 py-0.5 text-xs font-bold text-slate-700 bg-gray-50 border-gray-200">
+                                <span>x${i.qty}</span>
+                             </div>
+                             <button onclick="removeItem(${i.id})" class="text-xs text-gray-400 font-medium underline">Eliminar</button>
                         </div>
                      </div>
                 </div>
             `).join('');
 
-            document.getElementById('checkout-store-name').innerText = SHOP_DATA.config.name;
             document.getElementById('checkout-address').innerText = USER_ADDRESS;
-
-            updateCartUI(); // Refresh totals
+            updateCartUI();
         }
 
         function closeCheckout() {
@@ -664,21 +702,19 @@
 
         function removeItem(id) {
             CART = CART.filter(i => i.id !== id);
-            openCheckout(); // Re-render
-            updateCartUI(); // Check if empty
+            openCheckout(); // Re-render list
+            updateCartUI(); // Update totals and bar
             if (CART.length === 0) closeCheckout();
         }
 
-        // --- PAYMENT & TIP ---
         function setTip(pct) {
             SELECTED_TIP = pct;
-            // Update UI buttons
             document.querySelectorAll('.tip-btn').forEach(btn => {
-                // Reset styles (simplified hack)
-                btn.className = 'tip-btn flex-1 py-2 rounded-lg bg-gray-100 text-xs font-bold text-gray-600 border border-transparent active:border-orange-500 active:bg-orange-50 active:text-orange-600 transition';
-                if (btn.innerText.includes(pct + '%') || (pct === 0 && btn.innerText === 'No')) {
-                    btn.classList.remove('bg-gray-100', 'text-gray-600');
-                    btn.classList.add('bg-orange-50', 'text-orange-600', 'border-orange-200');
+                // Reset
+                btn.className = 'tip-btn flex-1 py-3 rounded-xl bg-gray-100 text-xs font-bold text-gray-500 border-2 border-transparent transition';
+                // Activate
+                if ((pct === 0 && btn.innerText === 'No') || btn.innerText.includes(pct + '%')) {
+                    btn.className = 'tip-btn flex-1 py-3 rounded-xl bg-orange-50 text-xs font-bold text-orange-600 border-2 border-orange-500 transition';
                 }
             });
             updateCartUI();
@@ -687,26 +723,18 @@
         function openPaymentMethods() {
             document.getElementById('payment-modal').classList.add('active');
         }
-
         function closePaymentMethods() {
             document.getElementById('payment-modal').classList.remove('active');
         }
-
         function selectPayment(method) {
             SELECTED_PAYMENT = method;
-            document.getElementById('checkout-payment-label').innerText = method === 'Efectivo' ? 'Pago en efectivo' : method;
-            // closePaymentMethods(); // Optional immediate close
+            document.getElementById('checkout-payment-label').innerText = method;
+            closePaymentMethods();
         }
 
-
-        // --- SUBMIT ---
         function submitOrder() {
             if (CART.length === 0) return;
-
-            const btn = document.querySelector('button[onclick="submitOrder()"]');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
-            btn.disabled = true;
-
+            // logic
             const orderPayload = {
                 slug: SHOP_DATA.slug,
                 order: {
@@ -720,23 +748,7 @@
                     status: 'pending'
                 }
             };
-
-            // Emit via Socket
-            console.log("Sending Order:", orderPayload);
             socket.emit('register-order', orderPayload);
-
-            // Timeout feedback in case socket fails/doesn't reply
-            setTimeout(() => {
-                if (!btn.disabled) return; // Already handled
-                // If 5 sec passed and no reply, assume success for UI or error
-                // We'll just leave it hanging or show a warning. 
-                // For this demo, let's allow the user to retry or just wait.
-            }, 8000);
-        }
-
-        // Helpers
-        function configSafe() {
-            return SHOP_DATA ? SHOP_DATA.config : {};
         }
 
     </script>
