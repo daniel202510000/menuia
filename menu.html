@@ -608,7 +608,16 @@
 
             document.getElementById('store-title').innerText = config.name;
             document.getElementById('store-time').innerText = config.prepTime || "30-45 Min";
-            document.getElementById('store-fee').innerText = `Envío MX$${config.shipping?.costPerKm || 15}.00`;
+            const sCfg = config.shipping || {};
+            if (sCfg.freeShippingActive) {
+                if (sCfg.freeShippingThreshold > 0) {
+                    document.getElementById('store-fee').innerText = `Envío Gratis > $${sCfg.freeShippingThreshold}`;
+                } else {
+                    document.getElementById('store-fee').innerText = `Envío Gratis 🛵`;
+                }
+            } else {
+                document.getElementById('store-fee').innerText = `Envío MX$${sCfg.costPerKm || 11}.00`;
+            }
             document.getElementById('checkout-store-name').innerText = config.name;
 
             // 1. PROMOTIONS
@@ -953,16 +962,51 @@
 
             // Sync checkout
             document.getElementById('summ-products').innerText = `MX$${total.toFixed(2)}`;
-            const shipping = 0.00; // Por ahora 0
+
+            // --- SHIPPING LOGIC ---
+            const shipConfig = SHOP_DATA.config.shipping || { freeThreshold: 0, costPerKm: 11, freeShippingActive: false };
+            let shippingCost = 0;
+            const distKm = 2.5; // MOCK DISTANCE (In real app, calculate from USER_ADDRESS vs SHOP lat/lng)
+
+            if (shipConfig.freeShippingActive) {
+                // Logic: Enabled?
+                if (shipConfig.freeShippingThreshold > 0) {
+                    // Check Threshold
+                    if (total >= shipConfig.freeShippingThreshold) {
+                        shippingCost = 0;
+                    } else {
+                        shippingCost = distKm * (shipConfig.costPerKm || 11);
+                    }
+                } else {
+                    // Always free if threshold is 0
+                    shippingCost = 0;
+                }
+            } else {
+                // Not enabled = Standard cost
+                shippingCost = distKm * (shipConfig.costPerKm || 11);
+            }
+
             const service = 0.00;  // Por ahora 0
             const discount = 0.00; // Por ahora 0
             document.getElementById('summ-discount').innerText = `-MX$${discount.toFixed(2)}`;
 
             const tipVal = (total * (SELECTED_TIP / 100));
-            document.getElementById('summ-shipping').innerText = `MX$${shipping.toFixed(2)}`;
+
+            // Update UI with "Gratis" badge if 0
+            const shipEl = document.getElementById('summ-shipping');
+            if (shippingCost === 0) {
+                shipEl.innerText = "¡Gratis!";
+                shipEl.classList.add('text-green-600', 'font-bold');
+                shipEl.classList.remove('text-black');
+            } else {
+                shipEl.innerText = `MX$${shippingCost.toFixed(2)}`;
+                shipEl.classList.remove('text-green-600', 'font-bold');
+                shipEl.classList.add('text-black');
+            }
+
             document.getElementById('summ-tip').innerText = `MX$${tipVal.toFixed(2)}`;
 
-            const final = total + shipping + service + tipVal - discount;
+            const final = total + shippingCost + service + tipVal - discount;
             document.getElementById('final-total').innerText = `MX$${final.toFixed(2)}`;
         }
 
