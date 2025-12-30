@@ -513,6 +513,7 @@
         let USER_ADDRESS = "Ubicación actual";
         let USER_PHONE = "5500000000";
         let ACTIVE_CATEGORY = '';
+        const OTHER_CHARGES = 6;
 
         // STRIPE INIT
         const stripe = Stripe('pk_live_51OZF7oDKTVLpE1Bjbj9mxym6tHWLiRURKGTYAg1eXlA8ikjGPqdHfl0WRshcGtbZZta2XoUheE3M7ucpVw1RmiVt00UVZYBudP');
@@ -1006,7 +1007,7 @@
 
             document.getElementById('summ-tip').innerText = `MX$${tipVal.toFixed(2)}`;
 
-            const final = total + shippingCost + service + tipVal - discount;
+            const final = total + shippingCost + service + tipVal - discount + OTHER_CHARGES;
             document.getElementById('final-total').innerText = `MX$${final.toFixed(2)}`;
         }
 
