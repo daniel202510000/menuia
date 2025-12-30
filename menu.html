@@ -617,11 +617,46 @@
             }
             document.getElementById('checkout-store-name').innerText = config.name;
 
-            // 1. PROMOTIONS
-            const promos = menu.promos || [];
-            if (promos.length > 0) {
-                document.getElementById('promos-container').innerHTML = promos.map(p => {
-                    const old = p.originalPrice || p.oldPrice;
+            // 1. PROMOTIONS (Dynamic Detection)
+            let allPromos = [];
+
+            // Scan all categories for items with discounts or special markers
+            const keysToScan = Object.keys(menu).filter(k => k !== 'groups' && k !== 'config');
+            keysToScan.forEach(k => {
+                const items = menu[k] || [];
+                if (Array.isArray(items)) {
+                    items.forEach(item => {
+                        const price = parseFloat(item.price);
+                        const oldPrice = parseFloat(item.originalPrice || item.oldPrice || 0);
+
+                        // Logic: Has old price > current price OR name includes "2x1", "promo", "compra X obten Y"
+                        const hasDiscount = oldPrice > price;
+                        const isPromoType = /2x1|3x2|promo|oferta|descuento|gratis|compra.+obt[eé]n|compra.+ll[eé]va/i.test(item.name);
+
+                        if (hasDiscount || isPromoType) {
+                            allPromos.push({ ...item, _category: k, _oldPrice: oldPrice });
+                        }
+                    });
+                }
+            });
+
+            // If manual 'promos' category exists and has items, include them too (avoid duplicates)
+            if (menu.promos && Array.isArray(menu.promos)) {
+                menu.promos.forEach(p => {
+                    if (!allPromos.find(x => x.name === p.name)) allPromos.push(p);
+                });
+            }
+
+            // Shuffle or Sor by discount? Let's sort by discount % desc
+            allPromos.sort((a, b) => {
+                const dA = a._oldPrice ? (a._oldPrice - a.price) / a._oldPrice : 0;
+                const dB = b._oldPrice ? (b._oldPrice - b.price) / b._oldPrice : 0;
+                return dB - dA;
+            });
+
+            if (allPromos.length > 0) {
+                document.getElementById('promos-container').innerHTML = allPromos.map(p => {
+                    const old = p._oldPrice || p.originalPrice || p.oldPrice;
                     const discount = old && old > p.price ? Math.round(((old - p.price) / old) * 100) : 0;
 
                     return `
@@ -639,11 +674,12 @@
                             <h4 class="font-bold text-black text-sm leading-tight line-clamp-1 mb-0.5">${p.name}</h4>
                             <div class="flex flex-col leading-none">
                                 <span class="text-black font-bold text-sm">MX$${parseFloat(p.price).toFixed(2)}</span>
-                                ${old ? `<span class="text-[10px] text-gray-400 line-through">MX$${old}</span>` : ''}
+                                ${old ? `<span class="text-[10px] text-gray-400 line-through">MX$${parseFloat(old).toFixed(2)}</span>` : ''}
                             </div>
                         </div>
                     </div>
                 `}).join('');
+                document.getElementById('promos-section').style.display = 'block';
             } else {
                 document.getElementById('promos-section').style.display = 'none';
             }
