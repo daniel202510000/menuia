@@ -626,8 +626,8 @@
                                 <div id="group-creator"
                                     class="hidden bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200 animate-fade-in-up">
                                     <div class="flex justify-between items-center mb-2">
-                                        <span class="text-xs font-bold text-gray-500 uppercase">Crear
-                                            Grupo</span>
+                                        <span id="group-creator-title"
+                                            class="text-xs font-bold text-gray-500 uppercase">Crear Grupo</span>
                                         <button onclick="closeGroupCreator()"
                                             class="text-gray-400 hover:text-gray-600"><i
                                                 class="fa-solid fa-times"></i></button>
@@ -635,6 +635,36 @@
 
                                     <input type="text" id="new-group-name" placeholder="Nombre (ej: Elige tus Salsas)"
                                         class="w-full text-sm border border-gray-300 rounded p-2 mb-2 font-bold text-gray-700 outline-none focus:border-blue-500">
+
+                                    <div class="flex gap-4 mb-2 px-1">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="new-group-multi" onchange="toggleMultiOptions()"
+                                                class="accent-blue-600 w-4 h-4">
+                                            <span class="text-xs text-gray-600 font-medium">Selección Múltiple</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="new-group-required"
+                                                class="accent-red-500 w-4 h-4">
+                                            <span class="text-xs text-gray-600 font-medium">Obligatorio</span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Multi Settings (Hidden by default) -->
+                                    <div id="multi-options-settings"
+                                        class="hidden bg-blue-50 p-2 rounded border border-blue-100 mb-2 space-y-2">
+                                        <div>
+                                            <label class="text-[10px] font-bold text-gray-400 uppercase">Máximo a
+                                                elegir</label>
+                                            <input type="number" id="new-group-max" placeholder="0 = Sin límite"
+                                                class="w-full text-xs text-gray-700 font-bold bg-white border border-blue-200 rounded p-1.5 focus:ring-1 focus:ring-blue-400 outline-none">
+                                        </div>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="new-group-repeats"
+                                                class="accent-purple-600 w-3 h-3">
+                                            <span class="text-[10px] text-gray-600 font-bold">Permitir repetir opciones
+                                                (ej: x2 Queso)</span>
+                                        </label>
+                                    </div>
 
                                     <!-- Dynamic Options List -->
                                     <div class="mb-2">
@@ -1660,6 +1690,7 @@
             // --- MENU LOGIC ---
             function renderMenuGrid(cat) {
                 currentCategory = cat;
+                if (typeof editingGroupIdx === 'undefined') window.editingGroupIdx = -1; // Ensure it exists
                 document.querySelectorAll('[id^="btn-cat-"]').forEach(b => { if (b.id === `btn-cat-${cat}`) b.className = "px-4 py-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap"; else b.className = "px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 whitespace-nowrap"; });
 
                 if (!SESSION.data.menu || !SESSION.data.menu[cat]) {
@@ -1671,8 +1702,42 @@
                 document.getElementById('menu-grid').innerHTML = items.map((item, idx) => `<div class="bg-white border border-gray-100 rounded-xl p-3 flex gap-3 hover:shadow-md transition group"><img src="${item.image || 'https://via.placeholder.com/80'}" class="w-20 h-20 rounded-lg object-cover bg-gray-100"><div class="flex-1 min-w-0"><h4 class="font-bold text-gray-800 truncate">${item.name}</h4><div class="flex justify-between items-center mt-2"><span class="font-bold text-green-600">$${item.price}</span><div class="flex gap-2 opacity-0 group-hover:opacity-100 transition"><button onclick="editProduct('${cat}', ${idx})" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct('${cat}', ${idx})" class="text-red-500 hover:bg-red-50 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></div></div></div></div>`).join('');
             }
 
-            function openGroupCreator() { document.getElementById('group-creator').classList.remove('hidden'); document.getElementById('new-group-name').value = ''; document.getElementById('new-group-options-list').innerHTML = ''; addOptionRow(); }
-            function closeGroupCreator() { document.getElementById('group-creator').classList.add('hidden'); }
+            function openGroupCreator() {
+                document.getElementById('group-creator').classList.remove('hidden');
+
+                // Si NO estamos editando (llamado desde "Nuevo"), limpiar todo
+                if (window.editingGroupIdx === -1) {
+                    document.getElementById('group-creator-title').innerText = "Crear Grupo";
+                    document.getElementById('new-group-name').value = '';
+                    document.getElementById('new-group-multi').checked = false;
+                    document.getElementById('new-group-required').checked = false;
+
+                    const maxInput = document.getElementById('new-group-max');
+                    if (maxInput) maxInput.value = '';
+
+                    const repeatCheck = document.getElementById('new-group-repeats');
+                    if (repeatCheck) repeatCheck.checked = false;
+
+                    toggleMultiOptions();
+                    document.getElementById('new-group-options-list').innerHTML = '';
+                    addOptionRow();
+                } else {
+                    document.getElementById('group-creator-title').innerText = "Editar Grupo";
+                }
+            }
+            function closeGroupCreator() {
+                document.getElementById('group-creator').classList.add('hidden');
+                window.editingGroupIdx = -1; // Reset al cerrar
+            }
+
+            function toggleMultiOptions() {
+                const isMulti = document.getElementById('new-group-multi').checked;
+                const settings = document.getElementById('multi-options-settings');
+                if (settings) {
+                    if (isMulti) settings.classList.remove('hidden');
+                    else settings.classList.add('hidden');
+                }
+            }
 
             function addOptionRow() {
                 const d = document.createElement('div'); d.className = "flex gap-2 mb-2 items-center option-row"; d.innerHTML = `<input type="text" placeholder="Ej: Queso" class="flex-1 text-xs border border-gray-300 rounded p-1.5 option-name"><input type="number" placeholder="$0" class="w-16 text-xs border border-gray-300 rounded p-1.5 option-price" min="0"><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-times"></i></button>`; document.getElementById('new-group-options-list').appendChild(d);
@@ -1686,24 +1751,108 @@
 
                 const groups = SESSION.data.menu.groups;
                 if (groups.length === 0) { document.getElementById('groups-list').innerHTML = `<div class="text-gray-400 text-xs text-center py-2 italic">Sin grupos aún.</div>`; return; }
-                document.getElementById('groups-list').innerHTML = groups.map((g, idx) => `
+                document.getElementById('groups-list').innerHTML = groups.map((g, idx) => {
+                    const multiBadge = g.multiSelect ? '<span class="text-[9px] bg-blue-100 text-blue-600 px-1.5 rounded border border-blue-200">Multi</span>' : '<span class="text-[9px] bg-gray-100 text-gray-500 px-1.5 rounded border border-gray-200">Único</span>';
+                    const reqBadge = g.required ? '<span class="text-[9px] bg-red-100 text-red-600 px-1.5 rounded border border-red-200">Obligatorio</span>' : '<span class="text-[9px] bg-green-100 text-green-600 px-1.5 rounded border border-green-200">Opcional</span>';
+
+                    let extraInfo = '';
+                    if (g.multiSelect) {
+                        if (g.maxSelection > 0) extraInfo += `<span class="text-[9px] text-gray-400 ml-1">Max: ${g.maxSelection}</span>`;
+                        if (g.allowRepeats) extraInfo += `<span class="text-[9px] text-purple-400 ml-1"><i class="fa-solid fa-repeat"></i></span>`;
+                    }
+
+                    return `
                 <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm relative group">
                     <div class="flex justify-between items-start mb-1">
-                        <div><span class="font-bold text-sm text-gray-800">${g.name}</span><div class="text-[10px] text-gray-400">${g.options.length} opciones</div></div>
-                        <button onclick="deleteGroup(${idx})" class="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
+                        <div>
+                            <span class="font-bold text-sm text-gray-800 block">${g.name}</span>
+                            <div class="flex items-center flex-wrap gap-1 mt-1 mb-1">${multiBadge}${reqBadge}${extraInfo}</div>
+                            <div class="text-[10px] text-gray-400">${g.options.length} opciones</div>
+                        </div>
+                        <div class="flex gap-2">
+                             <button onclick="editGroup(${idx})" class="text-blue-400 hover:text-blue-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen"></i></button>
+                             <button onclick="deleteGroup(${idx})" class="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>
-                </div>`).join('');
+                </div>`;
+                }).join('');
+            }
+
+            function editGroup(idx) {
+                editingGroupIdx = idx;
+                const g = SESSION.data.menu.groups[idx];
+
+                openGroupCreator(); // Abre el panel, pero como editingGroupIdx != -1, no borra nada (haremos carga manual aquí)
+
+                document.getElementById('new-group-name').value = g.name;
+                document.getElementById('new-group-multi').checked = g.multiSelect || false;
+                document.getElementById('new-group-required').checked = g.required || false;
+
+                const maxInput = document.getElementById('new-group-max');
+                if (maxInput) maxInput.value = g.maxSelection || '';
+
+                const repeatCheck = document.getElementById('new-group-repeats');
+                if (repeatCheck) repeatCheck.checked = g.allowRepeats || false;
+
+                toggleMultiOptions();
+
+                // Cargar opciones
+                const list = document.getElementById('new-group-options-list');
+                list.innerHTML = '';
+                g.options.forEach(o => {
+                    const d = document.createElement('div'); d.className = "flex gap-2 mb-2 items-center option-row";
+                    d.innerHTML = `<input type="text" value="${o.name}" class="flex-1 text-xs border border-gray-300 rounded p-1.5 option-name"><input type="number" value="${o.price}" class="w-16 text-xs border border-gray-300 rounded p-1.5 option-price" min="0"><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-times"></i></button>`;
+                    list.appendChild(d);
+                });
             }
 
             function saveGroup() {
                 const name = document.getElementById('new-group-name').value;
                 const opts = Array.from(document.querySelectorAll('.option-row')).map(r => ({ name: r.querySelector('.option-name').value, price: parseFloat(r.querySelector('.option-price').value) || 0 })).filter(o => o.name);
+
+                // Nuevos campos
+                const multiSelect = document.getElementById('new-group-multi').checked;
+                const required = document.getElementById('new-group-required').checked;
+
+                let maxSelection = 0;
+                let allowRepeats = false;
+
+                if (multiSelect) {
+                    const maxInput = document.getElementById('new-group-max');
+                    if (maxInput) maxSelection = parseInt(maxInput.value) || 0;
+
+                    const repeatCheck = document.getElementById('new-group-repeats');
+                    if (repeatCheck) allowRepeats = repeatCheck.checked;
+
+                    // Validación: Si no se repiten, el max no puede ser mayor que las opciones
+                    if (!allowRepeats && maxSelection > opts.length) {
+                        alert(`Atención: Pusiste un máximo de ${maxSelection} opciones, pero solo agregaste ${opts.length}. Se ajustará el límite a ${opts.length} ya que no permitiste repetir.`);
+                        maxSelection = opts.length;
+                    }
+                }
+
                 if (!name || opts.length === 0) return alert("Faltan datos");
 
                 if (!SESSION.data.menu.groups) SESSION.data.menu.groups = [];
 
-                SESSION.data.menu.groups.push({ id: 'g-' + Date.now(), name, options: opts });
-                renderGroups(); closeGroupCreator();
+                const groupData = {
+                    id: editingGroupIdx === -1 ? 'g-' + Date.now() : SESSION.data.menu.groups[editingGroupIdx].id,
+                    name,
+                    options: opts,
+                    multiSelect: multiSelect,
+                    required: required,
+                    maxSelection: maxSelection,
+                    allowRepeats: allowRepeats
+                };
+
+                if (editingGroupIdx === -1) {
+                    SESSION.data.menu.groups.push(groupData);
+                } else {
+                    SESSION.data.menu.groups[editingGroupIdx] = groupData;
+                }
+
+                renderGroups();
+                closeGroupCreator();
                 saveDataToServer(false);
             }
 
