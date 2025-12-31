@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -175,6 +175,12 @@
 </head>
 
 <body class="text-gray-800 min-h-screen flex flex-col bg-gray-100">
+    <!-- ADMIN APP INSTALL BUTTON (Always Visible) -->
+    <button id="pwa-install-btn-admin" onclick="installAdminPWA()"
+        class="fixed top-4 right-4 z-[9999] bg-slate-800 text-white px-4 py-2 rounded-full shadow-xl font-bold text-sm animate-bounce hover:bg-slate-900 transition border border-slate-600"
+        style="position: fixed; top: 20px; right: 20px; z-index: 99999;">
+        <i class="fa-solid fa-download"></i> Instalar Panel
+    </button>
 
     <!-- LOGIN / REGISTER SCREEN -->
     <div id="auth-container" class="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-4">
@@ -3157,6 +3163,25 @@
             // PWA SERVICE WORKER REGISTRATION (Admin)
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(console.error);
+            }
+
+            // ADMIN PWA INSTALL LOGIC
+            let deferredAdminPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                console.log("📲 Admin App is installable! Event fired.");
+                e.preventDefault();
+                deferredAdminPrompt = e;
+            });
+
+            async function installAdminPWA() {
+                if (deferredAdminPrompt) {
+                    deferredAdminPrompt.prompt();
+                    const { outcome } = await deferredAdminPrompt.userChoice;
+                    console.log(`User response: ${outcome}`);
+                    deferredAdminPrompt = null;
+                } else {
+                    alert("📲 Para instalar el Panel:\n\n1. Toca el menú de opciones (3 puntos).\n2. Selecciona 'Instalar aplicación' o 'Agregar a pantalla principal'.");
+                }
             }
         </script>
 </body>
