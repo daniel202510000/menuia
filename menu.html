@@ -1587,6 +1587,7 @@
         });
 
         // 2. Listen for Status Updates
+        // 2. Listen for Status Updates
         socket.on('order-status-updated', (data) => {
             // data = { orderId, status }
             const myOrderId = localStorage.getItem('last_active_order');
@@ -1596,14 +1597,13 @@
 
                 const statusText = translateStatus(data.status);
 
-                // Audio
-                playClientStatusSound(data.status);
+                // Audio: removed TTS. Only subtle chime.
 
-                // System Notification (Real Push-like)
+                // System Notification (Background Tab support)
                 showSystemNotification("Tu pedido se ha actualizado", `Nuevo estado: ${statusText}`);
 
-                // In-App floating alert (Visual fallback)
-                showFloatingAlert(statusText);
+                // In-App floating alert (App Style Toast)
+                showAppToast(statusText);
             }
         });
 
@@ -1638,12 +1638,16 @@
             }
         }
 
-        // REGISTER SERVICE WORKER
+        // REGISTER SERVICE WORKER (Kept for PWA capabilities)
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('SW Registered!', reg))
-                .catch(err => console.log('SW Failed', err));
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Failed', err));
         }
+
+        // Error Listener (For Validation Rules)
+        socket.on('order-error', (data) => {
+            alert(data.message);
+            // Re-enable button if needed logic existed, currently simple alert
+        });
 
         // --- NEW TOAST NOTIFICATION SYSTEM ---
         function showAppToast(statusText) {
