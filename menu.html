@@ -81,6 +81,11 @@
         .custom-checkbox input:checked+div i {
             display: block;
         }
+        
+        /* Fix for buttons inside clickable divs */
+        button {
+            pointer-events: auto; /* Ensure buttons are clickable */
+        }
     </style>
 </head>
 
@@ -510,6 +515,9 @@
         let ACTIVE_CATEGORY = '';
         const OTHER_CHARGES = 6;
 
+        // GLOBAL REGISTRY FOR ITEMS (Fixes JSON quote issues in onClick)
+        window.MENU_ITEMS = {};
+
         // STRIPE INIT
         const stripe = Stripe('pk_live_51OZF7oDKTVLpE1Bjbj9mxym6tHWLiRURKGTYAg1eXlA8ikjGPqdHfl0WRshcGtbZZta2XoUheE3M7ucpVw1RmiVt00UVZYBudP');
         let elements;
@@ -540,6 +548,14 @@
                 mockRender();
             }
         });
+
+        // Helper to register item safely and return ID
+        function registerItem(item) {
+            const id = item.id || item._id || 'temp_' + Math.random().toString(36).substr(2, 9);
+            item.id = id; // Ensure persistence
+            window.MENU_ITEMS[id] = item;
+            return id;
+        }
 
         function mockRender() {
             SHOP_DATA = {
@@ -598,29 +614,10 @@
             }
         }
 
-        // REGISTRY FOR CLICK HANDLING (Fixes syntax errors with special chars)
-        window.RENDERED_ITEMS = {};
-
-        window.registerItem = function (item) {
-            const id = 'item_' + Math.random().toString(36).substr(2, 9);
-            window.RENDERED_ITEMS[id] = item;
-            return id;
-        }
-
-        window.openDetailById = function (id) {
-            console.log("OpenDetailById called for:", id);
-            const item = (window.RENDERED_ITEMS || RENDERED_ITEMS)[id];
-            if (item) openDetail(item);
-            else {
-                console.error("Item not found:", id);
-                alert("Error: Item no encontrado. ID: " + id);
-            }
-        }
-
         function renderShop() {
-            // Reset Registry on re-render
-            window.RENDERED_ITEMS = {};
-
+            // Reset registry on re-render
+            window.MENU_ITEMS = {}; 
+            
             const config = SHOP_DATA.config;
             const menu = SHOP_DATA.menu;
 
@@ -639,70 +636,34 @@
             }
             document.getElementById('checkout-store-name').innerText = config.name;
 
-            // 1. PROMOTIONS (Dynamic Detection)
-            let allPromos = [];
-
-            // Scan all categories for items with discounts or special markers
-            const keysToScan = Object.keys(menu).filter(k => k !== 'groups' && k !== 'config');
-            keysToScan.forEach(k => {
-                const items = menu[k] || [];
-                if (Array.isArray(items)) {
-                    items.forEach(item => {
-                        const price = parseFloat(item.price);
-                        const oldPrice = parseFloat(item.originalPrice || item.oldPrice || 0);
-
-                        // Logic: Has old price > current price OR name includes "2x1", "promo", "compra X obten Y"
-                        const hasDiscount = oldPrice > price;
-                        const isPromoType = /2x1|3x2|promo|oferta|descuento|gratis|compra.+obt[eé]n|compra.+ll[eé]va/i.test(item.name);
-
-                        if (hasDiscount || isPromoType) {
-                            allPromos.push({ ...item, _category: k, _oldPrice: oldPrice });
-                        }
-                    });
-                }
-            });
-
-            // If manual 'promos' category exists and has items, include them too (avoid duplicates)
-            if (menu.promos && Array.isArray(menu.promos)) {
-                menu.promos.forEach(p => {
-                    if (!allPromos.find(x => x.name === p.name)) allPromos.push(p);
-                });
-            }
-
-            // Shuffle or Sor by discount? Let's sort by discount % desc
-            allPromos.sort((a, b) => {
-                const dA = a._oldPrice ? (a._oldPrice - a.price) / a._oldPrice : 0;
-                const dB = b._oldPrice ? (b._oldPrice - b.price) / b._oldPrice : 0;
-                return dB - dA;
-            });
-
-            if (allPromos.length > 0) {
-                document.getElementById('promos-container').innerHTML = allPromos.map(p => {
-                    const old = p._oldPrice || p.originalPrice || p.oldPrice;
+            // 1. PROMOTIONS
+            const promos = menu.promos || [];
+            if (promos.length > 0) {
+                document.getElementById('promos-container').innerHTML = promos.map(p => {
+                    const old = p.originalPrice || p.oldPrice;
                     const discount = old && old > p.price ? Math.round(((old - p.price) / old) * 100) : 0;
-                    const tempId = registerItem(p);
+                    const itemId = registerItem(p);
 
                     return `
-                    <div onclick="openDetailById('${tempId}')" class="min-w-[140px] w-[140px] cursor-pointer group">
+                    <div onclick="openDetail('${itemId}')" class="min-w-[140px] w-[140px] cursor-pointer group">
                         <div class="relative w-full h-32 rounded-2xl overflow-hidden mb-2 shadow-sm bg-gray-100">
                             <img src="${p.image || 'https://placehold.co/200'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 transition-all"> 
                              <!-- Discount Badge (Black) -->
                             ${discount > 0 ? `<div class="absolute bottom-2 left-2 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">${discount}% OFF</div>` : ''}
                             <!-- Add Btn Overlay (Black) -->
                             <div class="absolute bottom-2 right-2 w-7 h-7 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-black shadow-sm">
-                                <i class="fa-solid fa-plus text-xs font-bold"></i>
+                                <i class="fa-solid fa-plus text-xs font-bold pointer-events-none"></i>
                             </div>
                         </div>
                         <div class="px-1">
                             <h4 class="font-bold text-black text-sm leading-tight line-clamp-1 mb-0.5">${p.name}</h4>
                             <div class="flex flex-col leading-none">
                                 <span class="text-black font-bold text-sm">MX$${parseFloat(p.price).toFixed(2)}</span>
-                                ${old ? `<span class="text-[10px] text-gray-400 line-through">MX$${parseFloat(old).toFixed(2)}</span>` : ''}
+                                ${old ? `<span class="text-[10px] text-gray-400 line-through">MX$${old}</span>` : ''}
                             </div>
                         </div>
                     </div>
                 `}).join('');
-                document.getElementById('promos-section').style.display = 'block';
             } else {
                 document.getElementById('promos-section').style.display = 'none';
             }
@@ -713,16 +674,16 @@
 
             if (favorites.length > 0) {
                 document.getElementById('favorites-container').innerHTML = favorites.map((p, idx) => {
-                    const tempId = registerItem(p);
+                    const itemId = registerItem(p);
                     return `
-                    <div onclick="openDetailById('${tempId}')" class="min-w-[140px] w-[140px] cursor-pointer relative group">
+                    <div onclick="openDetail('${itemId}')" class="min-w-[140px] w-[140px] cursor-pointer relative group">
                          <div class="relative w-full h-32 rounded-2xl overflow-hidden mb-2 bg-gray-100 shadow-sm">
                             <img src="${p.image || 'https://placehold.co/150'}" class="w-full h-full object-cover">
                             <!-- RANK NUMBER (Black/Dark) -->
                             <span class="absolute -bottom-5 -left-1 text-[80px] font-bold text-black leading-none rank-number drop-shadow-md z-10 italic">${idx + 1}</span>
                              <!-- Add Btn Overlay -->
                             <div class="absolute bottom-2 right-2 w-7 h-7 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-black shadow-sm">
-                                <i class="fa-solid fa-plus text-xs font-bold"></i>
+                                <i class="fa-solid fa-plus text-xs font-bold pointer-events-none"></i>
                             </div>
                          </div>
                          <div class="pl-2 pt-2">
@@ -735,22 +696,16 @@
             }
 
             // 3. CATEGORIES
-            // 3. CATEGORIES
             const ignoreKeys = ['groups'];
             const allKeys = Object.keys(menu).filter(k => !ignoreKeys.includes(k));
             let cats = [];
 
             if (config.categories && Array.isArray(config.categories) && config.categories.length > 0) {
-                // Start with configured categories
                 cats = config.categories.map(c => c.id);
-
-                // Append any keys in 'menu' that are NOT in config (orphaned/legacy data)
-                // This ensures nothing is hidden even if config is out of sync
                 allKeys.forEach(k => {
                     if (!cats.includes(k)) cats.push(k);
                 });
             } else {
-                // Fallback Legacy
                 const preferred = ['promos', 'especiales', 'clasicos', 'extras'];
                 cats = allKeys.sort((a, b) => {
                     const idxA = preferred.indexOf(a);
@@ -798,16 +753,16 @@
             catContainer.innerHTML = catHtml;
             menuContainer.innerHTML = menuHtml;
 
-            // Find first populated category to set active
             const firstPopulated = cats.find(key => (menu[key] || []).length > 0);
             if (firstPopulated) setActiveCat(firstPopulated);
         }
 
 
         function renderFullCard(item) {
-            const tempId = registerItem(item);
+            const itemId = registerItem(item);
+            // Safe rendering using ID reference instead of inline JSON
             return `
-                <div class="flex gap-4 justify-between group item-card-dom cursor-pointer" data-name="${item.name.toLowerCase()}" onclick="openDetailById('${tempId}')">
+                <div class="flex gap-4 justify-between group item-card-dom cursor-pointer" data-name="${item.name.toLowerCase()}" onclick="openDetail('${itemId}')">
                     <!-- Text Info -->
                     <div class="flex-1 flex flex-col justify-start">
                         <h4 class="font-bold text-black text-base mb-1 leading-tight">${item.name}</h4>
@@ -823,10 +778,9 @@
                     <!-- Image & Add Btn -->
                     <div class="relative w-32 h-28 shrink-0">
                          <img src="${item.image || 'https://placehold.co/150'}" class="w-full h-full object-cover rounded-xl bg-gray-100 shadow-sm border border-gray-100 transition">
-
                          <!-- Add Button Absolute -->
-                         <button class="absolute -bottom-2 -right-2 w-9 h-9 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-black active:scale-90 transition z-10">
-                             <i class="fa-solid fa-plus text-sm font-bold"></i>
+                         <button type="button" class="absolute -bottom-2 -right-2 w-9 h-9 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center text-black active:scale-90 transition z-10">
+                             <i class="fa-solid fa-plus text-sm font-bold pointer-events-none"></i>
                          </button>
                     </div>
                 </div>
@@ -872,7 +826,22 @@
 
 
         // --- MODALS & CART ---
-        function openDetail(item) {
+        function openDetail(arg) {
+            console.log("Opening detail for:", arg);
+            
+            // Retrieve item from registry if arg is string ID
+            let item;
+            if (typeof arg === 'string') {
+                item = window.MENU_ITEMS[arg];
+            } else {
+                item = arg; // Fallback for legacy calls
+            }
+
+            if (!item) {
+                console.error("Item not found");
+                return;
+            }
+
             CURRENT_ITEM = { ...item, qty: 1 };
             document.getElementById('detail-title').innerText = item.name;
             document.getElementById('detail-price').innerText = 'MX$' + parseFloat(item.price).toFixed(2);
@@ -907,224 +876,115 @@
 
                 if (!groupDef) return;
 
-                // DETERMINE TYPE & MODE
-                const isMulti = groupDef.multiSelect !== undefined ? groupDef.multiSelect : ((groupDef.type !== 'single') && (groupDef.max !== 1));
-                const allowRepeats = groupDef.allowRepeats === true;
-                const maxSel = parseInt(groupDef.maxSelection) || 0;
-                const isRequired = groupDef.required === true;
+                // Logic for Type: 'single' vs 'multiple' OR legacy 'max===1'
+                const isSingle = (groupDef.type === 'single') || (groupDef.max === 1);
+                const inputType = isSingle ? 'radio' : 'checkbox';
+                const inputName = `mod-${groupDef.id || groupDef.name.replace(/\s+/g, '-')}`;
+                const isRequired = groupDef.required === true; // New property
 
-                // Explicit Mode
-                let mode = 'single'; // Default: Radio
-                if (isMulti) {
-                    if (allowRepeats) mode = 'multi-step';
-                    else mode = 'multi-check';
-                }
+                let optionsHtml = (groupDef.options || []).map(opt => `
+                    <label class="flex items-center justify-between py-2 cursor-pointer group">
+                        <div class="flex items-center gap-3">
+                             <input type="${inputType}" name="${inputName}" data-name="${opt.name}" data-price="${opt.price || 0}" class="peer sr-only" ${isRequired && isSingle ? 'required' : ''}>
+                             <div class="w-5 h-5 rounded border border-gray-300 peer-checked:bg-black peer-checked:border-black flex items-center justify-center transition">
+                                <span class="text-white text-[10px] hidden peer-checked:block"><i class="fa-solid fa-check"></i></span>
+                             </div>
+                             <span class="text-sm text-gray-700 font-medium group-hover:text-black transition">${opt.name}</span>
+                        </div>
+                        <span class="text-xs text-gray-500 font-medium">+MX$${parseFloat(opt.price || 0).toFixed(2)}</span>
+                    </label>
+                `).join('');
 
-                let optionsHtml = '';
-
-                // RENDER STRATEGY
-                if (mode === 'multi-step') {
-                    // CASE 3: STEPPERS (Repeats Allowed)
-                    optionsHtml = (groupDef.options || []).map(opt => `
-                <div class="flex items-center justify-between py-2 border-b border-dashed border-gray-100 last:border-0 option-item" 
-                     data-price="${opt.price || 0}" data-name="${opt.name}">
-                    <div class="flex-1">
-                        <p class="text-sm text-gray-700 font-medium">${opt.name}</p>
-                        <p class="text-xs text-gray-500 font-medium">+MX$${parseFloat(opt.price || 0).toFixed(2)}</p>
+                const html = `
+                    <div class="mb-4 group-wrapper" data-required="${isRequired}" data-name="${groupDef.name}">
+                        <div class="flex justify-between items-center mb-2 bg-gray-50 p-2 rounded-lg">
+                            <h4 class="font-bold text-sm text-black">${groupDef.name}</h4>
+                            <span class="text-[10px] ${isRequired ? 'text-red-500' : 'text-gray-400'} uppercase font-bold tracking-wider">
+                                ${isRequired ? 'Obligatorio *' : (isSingle ? 'Elige 1' : 'Opcional')}
+                            </span>
+                        </div>
+                        <div class="pl-2" id="group-options-${groupDef.id}">
+                            ${optionsHtml}
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
-                        <button onclick="updateOptionQty(this, -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-black transition btn-minus" disabled><i class="fa-solid fa-minus text-[10px]"></i></button>
-                        <span class="text-sm font-bold w-4 text-center option-qty-display">0</span>
-                        <button onclick="updateOptionQty(this, 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-black hover:bg-gray-200 transition btn-plus"><i class="fa-solid fa-plus text-[10px]"></i></button>
-                    </div>
-                    <!-- Hidden Input for logic compatibility -->
-                    <input type="checkbox" class="sr-only option-input" data-name="${opt.name}" data-price="${opt.price || 0}" data-qty="0">
-                </div>
-            `).join('');
-
-                } else {
-                    // CASE 1 & 2: RADIO (Single) OR CHECKBOX (Multi No-Repeat)
-                    const inputType = (mode === 'multi-check') ? 'checkbox' : 'radio';
-                    const inputName = `mod-${groupDef.id || Math.random().toString(36).substr(2, 9)}`;
-
-                    optionsHtml = (groupDef.options || []).map(opt => `
-                <label class="flex items-center justify-between py-2 cursor-pointer group option-item">
-                    <div class="flex items-center gap-3">
-                         <input type="${inputType}" name="${inputName}" data-name="${opt.name}" data-price="${opt.price || 0}" 
-                                 onchange="handleOptionChange(this)"
-                                 class="peer sr-only option-input" ${isRequired && mode === 'single' ? 'required' : ''}>
-                         <div class="w-5 h-5 rounded border border-gray-300 peer-checked:bg-black peer-checked:border-black flex items-center justify-center transition">
-                            <span class="text-white text-[10px] hidden peer-checked:block"><i class="fa-solid fa-check"></i></span>
-                         </div>
-                         <span class="text-sm text-gray-700 font-medium group-hover:text-black transition">${opt.name}</span>
-                    </div>
-                    <span class="text-xs text-gray-500 font-medium">+MX$${parseFloat(opt.price || 0).toFixed(2)}</span>
-                </label>
-            `).join('');
-                }
-
-                // Render Header info
-                let badgeText = isRequired ? 'Obligatorio' : 'Opcional';
-                if (mode === 'single') badgeText += ' • Elige 1';
-                else if (maxSel > 0) badgeText += ` • Máx ${maxSel}`;
-
-                const div = document.createElement('div');
-                div.className = "mb-5 group-wrapper";
-                div.dataset.id = groupDef.id;
-                div.dataset.required = isRequired;
-                div.dataset.mode = mode; // New explicitly stored mode
-                div.dataset.max = maxSel;
-                div.dataset.name = groupDef.name;
-
-                div.innerHTML = `
-            <div class="flex justify-between items-center mb-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                <h4 class="font-bold text-sm text-black">${groupDef.name}</h4>
-                <span class="text-[10px] ${isRequired ? 'text-red-600 bg-red-50 border-red-100' : 'text-gray-500 bg-white border-gray-200'} border px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
-                    ${badgeText}
-                </span>
-            </div>
-            <div class="pl-1 space-y-1" id="group-options-${groupDef.id}">
-                ${optionsHtml}
-            </div>
-            ${(mode !== 'single' && maxSel > 0) ? `<p class="text-[10px] text-right text-orange-500 mt-1 mr-1 max-bg hidden font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Límite alcanzado (${maxSel})</p>` : ''}
-        `;
-
-                container.appendChild(div);
+                `;
+                container.innerHTML += html;
             });
 
-            // Initial Calculation
-            document.getElementById('detail-qty').innerText = 1;
+            // Update Total on Modifier Change
+            container.addEventListener('change', updateDetailTotal);
+
             updateDetailTotal();
 
-            document.getElementById('product-modal').classList.remove('hidden');
+            // Populate Upsells (Random)
+            const allItems = [...(SHOP_DATA.menu.clasicos || []), ...(SHOP_DATA.menu.extras || [])];
+            const upsells = allItems.sort(() => 0.5 - Math.random()).slice(0, 5);
+            document.getElementById('upsells-container').innerHTML = upsells.map(u => {
+                 const upId = registerItem(u);
+                 return `
+                 <div class="min-w-[120px] flex flex-col gap-2 cursor-pointer group" onclick="addUpsell('${upId}')">
+                    <div class="relative w-full h-28 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
+                        <img src="${u.image}" class="w-full h-full object-cover">
+                         <div class="absolute bottom-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center text-black shadow-sm">
+                            <i class="fa-solid fa-plus text-[10px] font-bold"></i>
+                         </div>
+                    </div>
+                    <div>
+                         <span class="text-xs font-medium text-slate-800 line-clamp-1">${u.name}</span>
+                         <span class="text-xs font-bold text-black">MX$${u.price}</span>
+                    </div>
+                 </div>
+             `}).join('');
+
+            document.getElementById('product-modal').classList.add('active');
         }
 
-        function handleOptionChange(input) {
-            const wrapper = input.closest('.group-wrapper');
-            if (wrapper) enforceGroupLimits(wrapper);
-            updateDetailTotal();
-        }
-
-        function updateOptionQty(btn, delta) {
-            const row = btn.closest('.option-item');
-            const input = row.querySelector('.option-input');
-            const display = row.querySelector('.option-qty-display');
-            const wrapper = btn.closest('.group-wrapper');
-
-            let currentQty = parseInt(input.getAttribute('data-qty') || 0);
-            const newQty = currentQty + delta;
-
-            if (newQty < 0) return;
-
-            // Preliminary Limit Check before applying
-            if (delta > 0 && wrapper) {
-                const max = parseInt(wrapper.dataset.max) || 0;
-                if (max > 0) {
-                    const currentTotal = getGroupTotalQty(wrapper);
-                    if (currentTotal >= max) return; // Should be blocked by UI, but double check
-                }
-            }
-
-            // Apply
-            input.setAttribute('data-qty', newQty);
-            display.innerText = newQty;
-
-            // Sync Checkbox state for consistency
-            input.checked = newQty > 0;
-
-            // Visual Feedback for Minus Button
-            const minusBtn = row.querySelector('.btn-minus');
-            if (minusBtn) minusBtn.disabled = newQty === 0;
-
-            enforceGroupLimits(wrapper);
-            updateDetailTotal();
-        }
-
-        function getGroupTotalQty(wrapper) {
-            let total = 0;
-            const mode = wrapper.dataset.mode;
-
-            if (mode === 'multi-step') {
-                wrapper.querySelectorAll('.option-input').forEach(inp => {
-                    total += parseInt(inp.getAttribute('data-qty') || 0);
-                });
-            } else if (mode === 'multi-check') {
-                wrapper.querySelectorAll('input[type="checkbox"]:checked').forEach(() => {
-                    total++;
-                });
+        function addUpsell(arg) {
+            let item;
+            if (typeof arg === 'string') {
+                item = window.MENU_ITEMS[arg];
             } else {
-                // Single
-                if (wrapper.querySelector('input:checked')) total = 1;
+                item = arg;
             }
-            return total;
+            
+            if(!item) return;
+
+            const cartItem = {
+                id: Date.now(),
+                name: item.name,
+                price: parseFloat(item.price),
+                qty: 1,
+                total: parseFloat(item.price),
+                image: item.image
+            };
+            CART.push(cartItem);
+            updateCartUI();
+            alert(`Añadido: ${item.name}`);
         }
 
-        function enforceGroupLimits(wrapper) {
-            const mode = wrapper.dataset.mode;
-            const max = parseInt(wrapper.dataset.max) || 0;
+        function closeProductModal() {
+            document.getElementById('product-modal').classList.remove('active');
+        }
 
-            // Limits only apply to multi selection with a defined max > 0
-            if (mode === 'single' || max === 0) return;
-
-            const currentTotal = getGroupTotalQty(wrapper);
-            const reached = currentTotal >= max;
-
-            const msg = wrapper.querySelector('.max-bg');
-
-            if (reached) {
-                if (msg) msg.classList.remove('hidden');
-
-                // DISABLE LOGIC
-                if (mode === 'multi-step') {
-                    // Disable ALL PLUS buttons
-                    wrapper.querySelectorAll('.btn-plus').forEach(b => b.disabled = true);
-                    // Ensure Minus buttons are enabled where qty > 0 (handled in updateOptionQty, but safeguard)
-                } else if (mode === 'multi-check') {
-                    // Disable UNCHECKED inputs
-                    wrapper.querySelectorAll('input[type="checkbox"]').forEach(inp => {
-                        if (!inp.checked) {
-                            inp.disabled = true;
-                            inp.parentElement.classList.add('opacity-50', 'cursor-not-allowed');
-                        }
-                    });
-                }
-            } else {
-                if (msg) msg.classList.add('hidden');
-
-                // ENABLE LOGIC
-                if (mode === 'multi-step') {
-                    wrapper.querySelectorAll('.btn-plus').forEach(b => b.disabled = false);
-                } else if (mode === 'multi-check') {
-                    wrapper.querySelectorAll('input[type="checkbox"]').forEach(inp => {
-                        inp.disabled = false;
-                        inp.parentElement.classList.remove('opacity-50', 'cursor-not-allowed');
-                    });
-                }
-            }
+        function adjustDetailQty(delta) {
+            const newQty = CURRENT_ITEM.qty + delta;
+            if (newQty < 1) return;
+            CURRENT_ITEM.qty = newQty;
+            document.getElementById('detail-qty').innerText = newQty;
+            updateDetailTotal();
         }
 
         function updateDetailTotal() {
-            let modifiersTotal = 0;
+            // Base
+            let unitPrice = parseFloat(CURRENT_ITEM.price);
 
-            document.querySelectorAll('#detail-modifiers .group-wrapper').forEach(grp => {
-                const mode = grp.dataset.mode;
-
-                grp.querySelectorAll('.option-input').forEach(inp => {
-                    const price = parseFloat(inp.dataset.price || 0);
-
-                    if (mode === 'multi-step') {
-                        const qty = parseInt(inp.getAttribute('data-qty') || 0);
-                        modifiersTotal += (price * qty);
-                    } else {
-                        if (inp.checked) modifiersTotal += price;
-                    }
-                });
+            // Add Modifiers
+            document.querySelectorAll('#detail-modifiers input:checked').forEach(inp => {
+                unitPrice += parseFloat(inp.dataset.price || 0);
             });
 
-            const itemTotal = (parseFloat(CURRENT_ITEM.price) + modifiersTotal);
-            const grandTotal = itemTotal * CURRENT_ITEM.qty;
-
-            document.getElementById('detail-btn-total').innerText = `MX$${grandTotal.toFixed(2)}`;
+            const total = (unitPrice * CURRENT_ITEM.qty).toFixed(2);
+            document.getElementById('detail-btn-total').innerText = `MX$${total}`;
         }
 
         function addToCartFromDetail() {
@@ -1133,17 +993,10 @@
             document.querySelectorAll('.group-wrapper').forEach(grp => {
                 const isReq = grp.dataset.required === 'true';
                 if (isReq) {
-                    const count = getGroupTotalQty(grp);
-                    if (count === 0) {
+                    const checked = grp.querySelectorAll('input:checked').length;
+                    if (checked === 0) {
                         valid = false;
-                        // Shake effect or Alert
-                        grp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        grp.classList.add('ring-2', 'ring-red-500', 'bg-red-50');
-                        setTimeout(() => grp.classList.remove('ring-2', 'ring-red-500', 'bg-red-50'), 2000);
-
-                        // Also standard alert
-                        alert(`⚠️ "${grp.dataset.name}" es obligatorio. Selecciona al menos una opción.`);
-                        return; // Break inner loop logic (forEach doesn't break, but we set valid=false)
+                        alert(`⚠️ Debes seleccionar una opción para: "${grp.dataset.name}"`);
                     }
                 }
             });
@@ -1152,28 +1005,13 @@
             // 1. Get Modifiers
             const modifiers = [];
             let modifiersTotal = 0;
-
-            document.querySelectorAll('#detail-modifiers .group-wrapper').forEach(grp => {
-                const mode = grp.dataset.mode;
-
-                grp.querySelectorAll('.option-input').forEach(inp => {
-                    // Check based on mode
-                    const isActive = (mode === 'multi-step') ? (parseInt(inp.getAttribute('data-qty') || 0) > 0) : inp.checked;
-
-                    if (isActive) {
-                        const price = parseFloat(inp.dataset.price || 0);
-                        const name = inp.dataset.name;
-
-                        if (mode === 'multi-step') {
-                            const qty = parseInt(inp.getAttribute('data-qty') || 0);
-                            modifiers.push({ name: `${qty}x ${name}`, price: price * qty });
-                            modifiersTotal += (price * qty);
-                        } else {
-                            modifiers.push({ name: name, price: price });
-                            modifiersTotal += price;
-                        }
-                    }
+            document.querySelectorAll('#detail-modifiers input:checked').forEach(inp => {
+                const price = parseFloat(inp.dataset.price || 0);
+                modifiers.push({
+                    name: inp.dataset.name,
+                    price: price
                 });
+                modifiersTotal += price;
             });
 
             // 2. Get Note & Cutlery
@@ -1181,6 +1019,7 @@
             const cutlery = document.getElementById('detail-cutlery').checked;
 
             // 3. Calc Total
+            // (Base + Modifiers) * Qty
             const unitPrice = parseFloat(CURRENT_ITEM.price) + modifiersTotal;
             const total = unitPrice * CURRENT_ITEM.qty;
 
@@ -1415,14 +1254,6 @@
         async function submitOrder() {
             if (CART.length === 0) return;
 
-            // CHECK SESSION
-            const userData = JSON.parse(localStorage.getItem('menuia_user_data'));
-            if (!userData) {
-                alert("⚠️ Debes iniciar sesión para realizar un pedido.");
-                window.location.href = 'index.html'; // Or login page
-                return;
-            }
-
             // Remove currency symbol and commas for clean parsing
             const rawTotal = document.getElementById('final-total').innerText.replace('MX$', '').replace(/,/g, '');
             const totalAmount = parseFloat(rawTotal);
@@ -1439,46 +1270,18 @@
         }
 
         function processOrderSubmission(status) {
-            // Recalculate costs for payload
-            const rawTotal = document.getElementById('final-total').innerText.replace('MX$', '').replace(/,/g, '');
-            const total = parseFloat(rawTotal);
-
-            // Get breakdown from UI or State
-            // Tip
-            const tipVal = (CART.reduce((acc, i) => acc + i.total, 0) * (SELECTED_TIP / 100));
-            // Shipping
-            const shipText = document.getElementById('summ-shipping').innerText;
-            const shipping = shipText === '¡Gratis!' ? 0 : parseFloat(shipText.replace('MX$', ''));
-            // Service (OTHER_CHARGES is a global var in this scope?)
-            // Assuming OTHER_CHARGES exists based on previous code reading (line 1237 in updateCartUI)
-            const service = (typeof OTHER_CHARGES !== 'undefined') ? OTHER_CHARGES : 0;
-            const subtotal = CART.reduce((acc, i) => acc + i.total, 0);
-
-            // Customer Name
-            let custName = "Cliente";
-            const userData = JSON.parse(localStorage.getItem('menuia_user_data'));
-            if (userData && userData.name) custName = userData.name;
-
             const orderPayload = {
                 slug: SHOP_DATA ? SHOP_DATA.slug : 'demo',
                 order: {
-                    ref: custName, // Using Name as Ref for Admin Display
-                    customerName: custName,
+                    ref: 'APP-' + Math.floor(Math.random() * 10000),
                     customerPhone: USER_PHONE,
                     address: USER_ADDRESS,
                     note: document.getElementById('delivery-note')?.value || '',
                     paymentMethod: SELECTED_PAYMENT,
                     type: 'delivery',
-                    items: CART, // CART items now have modifiers, note, cutlery
+                    items: CART,
                     total: document.getElementById('final-total').innerText,
-                    status: status,
-                    costs: {
-                        subtotal: subtotal,
-                        tip: tipVal,
-                        shipping: shipping,
-                        service: service,
-                        total: total
-                    }
+                    status: status
                 }
             };
             console.log("Submitting", orderPayload);
@@ -1528,13 +1331,7 @@
             const status = params.get('status');
 
             if (status === 'success') {
-                // Clear cart if needed, or better yet, just show success message
-                // In a real app we might verify the session ref with backend
                 alert("¡Pago Exitoso! Tu pedido está siendo procesado.");
-                // Ensure we submit the order as paid if not already handled by webhook (simple frontend handling)
-                // Note: Re-constructing cart from scratch is hard here without persistent storage.
-                // ideally backend handles fulfillment via webhook.
-                // For this demo/MVP, just showing success is good step implementation.
                 window.history.replaceState({}, document.title, window.location.pathname + "?slug=" + (SHOP_DATA?.slug || 'demo'));
             } else if (status === 'cancel') {
                 alert("El pago fue cancelado/incompleto.");
@@ -1542,7 +1339,6 @@
         }
 
         // Call on load
-        // We need to wait for SHOP_DATA to load or just run it blindly if slug is irrelevant to alert
         window.addEventListener('load', checkPaymentStatus);
 
     </script>
