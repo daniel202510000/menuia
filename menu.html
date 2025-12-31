@@ -348,6 +348,23 @@
                 </div>
             </div>
 
+            <!-- PERSONAL INFO CARD (NEW) -->
+            <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                <h3 class="font-bold text-sm text-black mb-3">Tus Datos</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
+                        <input type="text" id="checkout-name" placeholder="Tu nombre"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-1 focus:ring-black">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
+                        <input type="tel" id="checkout-phone" placeholder="10 dígitos"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-1 focus:ring-black">
+                    </div>
+                </div>
+            </div>
+
             <!-- Pay Method Summary -->
             <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex justify-between items-center cursor-pointer"
                 onclick="openPaymentMethods()">
@@ -1133,6 +1150,12 @@
             document.getElementById('checkout-modal').classList.add('active');
             document.getElementById('checkout-address').innerText = USER_ADDRESS || "Dirección no disponible";
 
+            // PRE-FILL INPUTS
+            const nameInput = document.getElementById('checkout-name');
+            const phoneInput = document.getElementById('checkout-phone');
+            if (nameInput && USER_NAME !== "Cliente") nameInput.value = USER_NAME;
+            if (phoneInput && USER_PHONE !== "5500000000") phoneInput.value = USER_PHONE;
+
             const list = document.getElementById('checkout-items-list');
             list.innerHTML = CART.map(i => `
                 <div class="flex gap-3">
@@ -1283,6 +1306,16 @@
             const rawTotal = document.getElementById('final-total').innerText.replace('MX$', '').replace(/,/g, '');
             const totalAmount = parseFloat(rawTotal);
 
+            // VALIDATE INPUTS
+            const nameVal = document.getElementById('checkout-name').value.trim();
+            const phoneVal = document.getElementById('checkout-phone').value.trim();
+            if (!nameVal) return alert("Por favor ingresa tu nombre.");
+            if (!phoneVal || phoneVal.length < 10) return alert("Por favor ingresa un teléfono válido (10 dígitos).");
+
+            // Update Globals
+            USER_NAME = nameVal;
+            USER_PHONE = phoneVal;
+
             console.log("Submit Order: Payment Method =", SELECTED_PAYMENT);
 
             if (SELECTED_PAYMENT === 'Tarjeta') {
@@ -1304,7 +1337,7 @@
                 shipping: getVal('summ-shipping'),
                 tip: getVal('summ-tip'),
                 service: 6.00, // Hardcoded in UI
-                total: getVal('final-total')
+                total: getVal('final-total') // This might be string if we parse innerText directly below, but let's keep consistent
             };
 
             return {
