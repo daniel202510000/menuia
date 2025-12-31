@@ -928,18 +928,24 @@
                 const inputName = `mod-${groupDef.id || groupDef.name.replace(/\s+/g, '-')}`;
                 const isRequired = groupDef.required === true; // New property
 
-                let optionsHtml = (groupDef.options || []).map(opt => `
+                let optionsHtml = (groupDef.options || []).map(opt => {
+                    const optName = typeof opt === 'string' ? opt : opt.name;
+                    const optPrice = typeof opt === 'string' ? 0 : (opt.price || 0);
+                    const safeName = optName.replace(/"/g, '&quot;');
+
+                    return `
                     <label class="flex items-center justify-between py-2 cursor-pointer group">
                         <div class="flex items-center gap-3">
-                             <input type="${inputType}" name="${inputName}" data-name="${opt.name}" data-price="${opt.price || 0}" class="peer sr-only" ${isRequired && isSingle ? 'required' : ''}>
+                             <input type="${inputType}" name="${inputName}" data-name="${safeName}" data-price="${optPrice}" class="peer sr-only" ${isRequired && isSingle ? 'required' : ''}>
                              <div class="w-5 h-5 rounded border border-gray-300 peer-checked:bg-black peer-checked:border-black flex items-center justify-center transition">
                                 <span class="text-white text-[10px] hidden peer-checked:block"><i class="fa-solid fa-check"></i></span>
                              </div>
-                             <span class="text-sm text-gray-700 font-medium group-hover:text-black transition">${opt.name}</span>
+                             <span class="text-sm text-gray-700 font-medium group-hover:text-black transition">${optName}</span>
                         </div>
-                        <span class="text-xs text-gray-500 font-medium">+MX$${parseFloat(opt.price || 0).toFixed(2)}</span>
+                        <span class="text-xs text-gray-500 font-medium">+MX$${parseFloat(optPrice).toFixed(2)}</span>
                     </label>
-                `).join('');
+                    `;
+                }).join('');
 
                 const html = `
                     <div class="mb-4 group-wrapper" data-required="${isRequired}" data-name="${groupDef.name}">
