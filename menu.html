@@ -697,11 +697,12 @@
             promoAllKeys.forEach(k => {
                 const items = menu[k] || [];
                 items.forEach(item => {
-                    if (item.oldPrice && parseFloat(item.oldPrice) > parseFloat(item.price)) {
+                    const oldPrice = item.originalPrice || item.oldPrice;
+                    if (oldPrice && parseFloat(oldPrice) > parseFloat(item.price)) {
                         // Check if already in list to avoid dups
                         const exists = allPromos.find(p => p.name === item.name);
                         if (!exists) {
-                            allPromos.push({ ...item, _autoLabel: 'Oferta' });
+                            allPromos.push({ ...item, oldPrice: oldPrice, _autoLabel: 'Oferta' });
                         }
                     }
                 });
