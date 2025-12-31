@@ -1150,12 +1150,6 @@
             document.getElementById('checkout-modal').classList.add('active');
             document.getElementById('checkout-address').innerText = USER_ADDRESS || "Dirección no disponible";
 
-            // PRE-FILL INPUTS
-            const nameInput = document.getElementById('checkout-name');
-            const phoneInput = document.getElementById('checkout-phone');
-            if (nameInput && USER_NAME !== "Cliente") nameInput.value = USER_NAME;
-            if (phoneInput && USER_PHONE !== "5500000000") phoneInput.value = USER_PHONE;
-
             const list = document.getElementById('checkout-items-list');
             list.innerHTML = CART.map(i => `
                 <div class="flex gap-3">
@@ -1306,15 +1300,8 @@
             const rawTotal = document.getElementById('final-total').innerText.replace('MX$', '').replace(/,/g, '');
             const totalAmount = parseFloat(rawTotal);
 
-            // VALIDATE INPUTS
-            const nameVal = document.getElementById('checkout-name').value.trim();
-            const phoneVal = document.getElementById('checkout-phone').value.trim();
-            if (!nameVal) return alert("Por favor ingresa tu nombre.");
-            if (!phoneVal || phoneVal.length < 10) return alert("Por favor ingresa un teléfono válido (10 dígitos).");
-
-            // Update Globals
-            USER_NAME = nameVal;
-            USER_PHONE = phoneVal;
+            // Reverted: rely on global USER_NAME
+            // console.log("Submitting as", USER_NAME);
 
             console.log("Submit Order: Payment Method =", SELECTED_PAYMENT);
 
