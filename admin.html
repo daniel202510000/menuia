@@ -330,7 +330,7 @@
                 class="bg-white h-16 border-b border-gray-200 flex md:hidden justify-between items-center px-4 z-20">
                 <div class="font-bold text-lg">Panel Admin <span class="ai-gradient-text text-xs">AI</span></div>
                 <button
-                    onclick="document.querySelector('aside').classList.toggle('hidden'); document.querySelector('aside').classList.toggle('absolute'); document.querySelector('aside').classList.toggle('h-full');"
+                    onclick="const s=document.querySelector('aside'); s.classList.toggle('hidden'); s.classList.toggle('fixed'); s.classList.toggle('inset-0'); s.classList.toggle('z-50');"
                     class="text-gray-600"><i class="fa-solid fa-bars text-xl"></i></button>
             </header>
 
@@ -697,7 +697,7 @@
                                     </button>
                                 </div>
 
-                                <div id="categories-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                <div id="categories-list" class="space-y-2 pr-1">
                                     <!-- Dynamic Categories List via JS -->
                                     <p class="text-xs text-center text-gray-400 py-2">Cargando...</p>
                                 </div>
@@ -717,7 +717,7 @@
                                 <!-- CREATOR FORM -->
                                 <!-- CREATOR FORM REPLACED BY MODAL -->
 
-                                <div id="groups-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                <div id="groups-list" class="space-y-2 pr-1">
                                     <!-- Dynamic Groups List -->
                                 </div>
                             </div>
@@ -1154,7 +1154,7 @@
                 <h3 class="font-bold text-lg text-gray-800">Producto</h3><button onclick="closeProductModal()"
                     class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><input type="hidden" id="prod-id">
+            <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto"><input type="hidden" id="prod-id">
                 <!-- Category Select (Dynamic) -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Categoría</label>
@@ -1354,8 +1354,7 @@
                 const sidebar = document.querySelector('aside');
                 if (window.innerWidth < 768 && !sidebar.classList.contains('hidden')) {
                     sidebar.classList.add('hidden');
-                    sidebar.classList.remove('absolute');
-                    sidebar.classList.remove('h-full');
+                    sidebar.classList.remove('fixed', 'inset-0', 'z-50');
                 }
 
                 if (viewId === 'menu') { renderGroups(); renderMenuGrid(currentCategory); }
