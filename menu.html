@@ -628,7 +628,7 @@
                     if (slug) socket.emit('join-store', slug);
                 });
                 socket.on('order-created-client', (order) => {
-                    alert(`¡Pedido Enviado! 🎉\nRef: ${order.ref}`);
+                    alert(`¡Pedido Enviado! 🎉`);
                     CART = [];
                     updateCartUI();
                     closeCheckout();
@@ -1348,7 +1348,7 @@
             return {
                 slug: SHOP_DATA ? SHOP_DATA.slug : 'demo',
                 order: {
-                    ref: Math.floor(Math.random() * 10000).toString(),
+                    ref: "",
                     customerName: USER_NAME,
                     customerPhone: USER_PHONE,
                     address: USER_ADDRESS,
