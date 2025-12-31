@@ -284,6 +284,10 @@
                     class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition active">
                     <i class="fa-solid fa-chart-pie w-5 text-center"></i> Resumen
                 </button>
+                <button onclick="switchView('finances')"
+                    class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i> Finanzas
+                </button>
                 <button onclick="switchView('orders')"
                     class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">
                     <i class="fa-solid fa-clipboard-list w-5 text-center"></i> Monitor Pedidos
@@ -439,6 +443,95 @@
                     </div>
                 </div> <!-- End Dashboard View -->
 
+
+                <!-- VIEW: FINANZAS (NEW) -->
+                <div id="view-finances" class="view-section hidden fade-enter space-y-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Finanzas Semanales</h2>
+                            <p class="text-gray-500 text-sm">Resumen de ganancias y saldos (Lun-Dom)</p>
+                        </div>
+                        <div
+                            class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600">
+                            <i class="fa-regular fa-calendar mr-2"></i> Semana Actual
+                        </div>
+                    </div>
+
+                    <!-- Finance Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Ganancia Total -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl">
+                                    <i class="fa-solid fa-sack-dollar"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-xs font-bold uppercase">Tu Ganancia Total</p>
+                                    <h3 class="text-2xl font-bold text-emerald-600" id="fin-total-profit">$0.00</h3>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400">Total ventas menos comisiones y cargos.</p>
+                        </div>
+
+                        <!-- Efectivo Recibido -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xl">
+                                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-xs font-bold uppercase">Efectivo Recibido</p>
+                                    <h3 class="text-2xl font-bold text-orange-600" id="fin-cash-received">$0.00</h3>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400">Dinero que ya cobraste en efectivo.</p>
+                        </div>
+
+                        <!-- Saldo a Favor -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div
+                                    class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+                                    <i class="fa-solid fa-scale-balanced"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-xs font-bold uppercase">Saldo a Favor</p>
+                                    <h3 class="text-2xl font-bold text-blue-600" id="fin-balance">$0.00</h3>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400">Lo que la plataforma te debe depositar.</p>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Table -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 class="font-bold text-gray-700">Desglose de Pedidos</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+                                        <th class="p-4 font-medium">Pedido</th>
+                                        <th class="p-4 font-medium">Fecha</th>
+                                        <th class="p-4 font-medium">Total Venta</th>
+                                        <th class="p-4 font-medium">Método</th>
+                                        <th class="p-4 font-medium">Neto (Tu Ganancia)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="finances-table-body" class="text-sm divide-y divide-gray-100">
+                                    <!-- Rows rendered by JS -->
+                                    <tr>
+                                        <td colspan="5" class="p-8 text-center text-gray-400">Cargando datos...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- VIEW: PROMOCIONES (NEW) -->
                 <div id="view-promotions" class="view-section hidden fade-enter space-y-6">
                     <div class="flex justify-between items-center">
@@ -576,38 +669,37 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Left Col: Categories & Groups -->
                         <div class="space-y-6">
-                            <!-- Categories Card -->
+                            <!-- Categories Card (Dynamic) -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                                <h3 class="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide border-b pb-2">
-                                    📂 Categorías (Editar Nombres)</h3>
-                                <div class="space-y-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-3 h-3 rounded-full bg-red-500"></div><input type="text"
-                                            id="cat-title-promos"
-                                            class="w-full text-sm border-none bg-transparent focus:ring-2 focus:ring-blue-100 rounded px-2 font-medium text-gray-700 hover:bg-gray-50"
-                                            placeholder="Nombre Cat 1">
+                                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                    <h3 class="font-bold text-gray-700 text-sm uppercase tracking-wide">📂 Categorías
+                                    </h3>
+                                    <button onclick="openCategoryCreator()"
+                                        class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-plus"></i> Nueva
+                                    </button>
+                                </div>
+
+                                <!-- Creator Form -->
+                                <div id="category-creator"
+                                    class="hidden bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200 animate-fade-in-up">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-gray-500 uppercase">Nueva Categoría</span>
+                                        <button onclick="closeCategoryCreator()"
+                                            class="text-gray-400 hover:text-gray-600"><i
+                                                class="fa-solid fa-times"></i></button>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div><input type="text"
-                                            id="cat-title-especiales"
-                                            class="w-full text-sm border-none bg-transparent focus:ring-2 focus:ring-blue-100 rounded px-2 font-medium text-gray-700 hover:bg-gray-50"
-                                            placeholder="Nombre Cat 2">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-3 h-3 rounded-full bg-green-500"></div><input type="text"
-                                            id="cat-title-clasicos"
-                                            class="w-full text-sm border-none bg-transparent focus:ring-2 focus:ring-blue-100 rounded px-2 font-medium text-gray-700 hover:bg-gray-50"
-                                            placeholder="Nombre Cat 3">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-3 h-3 rounded-full bg-blue-500"></div><input type="text"
-                                            id="cat-title-extras"
-                                            class="w-full text-sm border-none bg-transparent focus:ring-2 focus:ring-blue-100 rounded px-2 font-medium text-gray-700 hover:bg-gray-50"
-                                            placeholder="Nombre Cat 4">
-                                    </div>
-                                    <p class="text-[10px] text-gray-400 mt-2">* Edita los nombres y guarda
-                                        cambios para
-                                        actualizar.</p>
+                                    <input type="text" id="new-cat-name" placeholder="Nombre (ej: Postres)"
+                                        class="w-full text-sm border border-gray-300 rounded p-2 mb-2 font-bold text-gray-700 outline-none focus:border-blue-500">
+                                    <button onclick="saveCategory()"
+                                        class="w-full bg-gray-900 text-white text-xs py-2 rounded font-bold hover:bg-black transition shadow-sm">
+                                        Guardar
+                                    </button>
+                                </div>
+
+                                <div id="categories-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                    <!-- Dynamic Categories List via JS -->
+                                    <p class="text-xs text-center text-gray-400 py-2">Cargando...</p>
                                 </div>
                             </div>
 
@@ -617,75 +709,13 @@
                                     <h3 class="font-bold text-gray-700 text-sm uppercase tracking-wide">🧩
                                         Complementos
                                     </h3>
-                                    <button onclick="openGroupCreator()"
+                                    <button onclick="openGroupCreatorAdvanced()"
                                         class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold transition flex items-center gap-1"><i
                                             class="fa-solid fa-plus"></i> Nuevo</button>
                                 </div>
 
                                 <!-- CREATOR FORM -->
-                                <div id="group-creator"
-                                    class="hidden bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200 animate-fade-in-up">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <span id="group-creator-title"
-                                            class="text-xs font-bold text-gray-500 uppercase">Crear Grupo</span>
-                                        <button onclick="closeGroupCreator()"
-                                            class="text-gray-400 hover:text-gray-600"><i
-                                                class="fa-solid fa-times"></i></button>
-                                    </div>
-
-                                    <input type="text" id="new-group-name" placeholder="Nombre (ej: Elige tus Salsas)"
-                                        class="w-full text-sm border border-gray-300 rounded p-2 mb-2 font-bold text-gray-700 outline-none focus:border-blue-500">
-
-                                    <div class="flex gap-4 mb-2 px-1">
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" id="new-group-multi" onchange="toggleMultiOptions()"
-                                                class="accent-blue-600 w-4 h-4">
-                                            <span class="text-xs text-gray-600 font-medium">Selección Múltiple</span>
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" id="new-group-required"
-                                                class="accent-red-500 w-4 h-4">
-                                            <span class="text-xs text-gray-600 font-medium">Obligatorio</span>
-                                        </label>
-                                    </div>
-
-                                    <!-- Multi Settings (Hidden by default) -->
-                                    <div id="multi-options-settings"
-                                        class="hidden bg-blue-50 p-2 rounded border border-blue-100 mb-2 space-y-2">
-                                        <div>
-                                            <label class="text-[10px] font-bold text-gray-400 uppercase">Máximo a
-                                                elegir</label>
-                                            <input type="number" id="new-group-max" placeholder="0 = Sin límite"
-                                                class="w-full text-xs text-gray-700 font-bold bg-white border border-blue-200 rounded p-1.5 focus:ring-1 focus:ring-blue-400 outline-none">
-                                        </div>
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" id="new-group-repeats"
-                                                class="accent-purple-600 w-3 h-3">
-                                            <span class="text-[10px] text-gray-600 font-bold">Permitir repetir opciones
-                                                (ej: x2 Queso)</span>
-                                        </label>
-                                    </div>
-
-                                    <!-- Dynamic Options List -->
-                                    <div class="mb-2">
-                                        <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Opciones
-                                            (Nombre - Precio Extra)</label>
-                                        <div id="new-group-options-list"
-                                            class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                                            <!-- Rows added via JS -->
-                                        </div>
-                                    </div>
-
-                                    <button onclick="addOptionRow()"
-                                        class="w-full bg-white border border-dashed border-blue-300 text-blue-500 text-xs py-1.5 rounded mb-3 hover:bg-blue-50 transition font-bold flex items-center justify-center gap-1">
-                                        <i class="fa-solid fa-plus-circle"></i> Agregar Opción
-                                    </button>
-
-                                    <button onclick="saveGroup()"
-                                        class="w-full bg-gray-900 text-white text-xs py-2 rounded font-bold hover:bg-black transition shadow-sm">
-                                        Guardar Grupo
-                                    </button>
-                                </div>
+                                <!-- CREATOR FORM REPLACED BY MODAL -->
 
                                 <div id="groups-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
                                     <!-- Dynamic Groups List -->
@@ -697,15 +727,10 @@
                         <div class="lg:col-span-2">
                             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 h-full">
                                 <!-- Tabs for Products -->
-                                <div class="flex gap-2 overflow-x-auto border-b border-gray-100 pb-1 mb-4 no-scrollbar">
-                                    <button onclick="renderMenuGrid('promos')" id="btn-cat-promos"
-                                        class="px-4 py-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap">Promos</button>
-                                    <button onclick="renderMenuGrid('especiales')" id="btn-cat-especiales"
-                                        class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 whitespace-nowrap">Especiales</button>
-                                    <button onclick="renderMenuGrid('clasicos')" id="btn-cat-clasicos"
-                                        class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 whitespace-nowrap">Clásicos</button>
-                                    <button onclick="renderMenuGrid('extras')" id="btn-cat-extras"
-                                        class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 whitespace-nowrap">Extras</button>
+                                <!-- Tabs for Products (Dynamic) -->
+                                <div id="product-tabs"
+                                    class="flex gap-2 overflow-x-auto border-b border-gray-100 pb-1 mb-4 no-scrollbar">
+                                    <!-- Dynamic Tabs via JS -->
                                 </div>
 
                                 <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1113,19 +1138,10 @@
             <!-- Footer Actions -->
             <div class="p-4 bg-white border-t border-gray-200 flex flex-col gap-3">
                 <p class="text-xs font-bold text-gray-400 uppercase text-center mb-1">Cambiar Estado del Pedido</p>
-                <div class="grid grid-cols-5 gap-2">
-                    <button onclick="updateOrderStatus('pending')"
-                        class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-gray-50 border-gray-300 text-gray-500">Pendiente</button>
-                    <button onclick="updateOrderStatus('preparing')"
-                        class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-orange-50 border-orange-200 text-orange-600">Cocina</button>
-                    <button onclick="updateOrderStatus('ready')"
-                        class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-blue-50 border-blue-200 text-blue-600">Listo</button>
-                    <button onclick="updateOrderStatus('delivering')"
-                        class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-purple-50 border-purple-200 text-purple-600">En
-                        Camino</button>
-                    <button onclick="updateOrderStatus('completed')"
-                        class="status-btn px-2 py-2 rounded-lg border text-[10px] font-bold text-center hover:bg-green-50 border-green-200 text-green-600">Entregado</button>
-                </div>
+                <button id="btn-status-toggle" onclick="toggleOrderStatus()"
+                    class="w-full py-4 rounded-xl text-lg font-bold shadow-md transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate"></i> <span>Cargando acción...</span>
+                </button>
             </div>
         </div>
     </div>
@@ -1138,8 +1154,15 @@
                 <h3 class="font-bold text-lg text-gray-800">Producto</h3><button onclick="closeProductModal()"
                     class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><input type="hidden" id="prod-id"><input
-                    type="hidden" id="prod-category">
+            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><input type="hidden" id="prod-id">
+                <!-- Category Select (Dynamic) -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Categoría</label>
+                    <select id="prod-category-select"
+                        class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
                 <!-- GRID LAYOUT -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -1211,7 +1234,7 @@
                         <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
                             <div class="flex justify-between items-center mb-2">
                                 <label class="block text-xs font-bold text-blue-800">Grupos de Modificadores</label>
-                                <button onclick="openGroupCreator()"
+                                <button onclick="openGroupCreatorAdvanced()"
                                     class="text-[10px] bg-white border border-blue-200 text-blue-600 px-2 py-0.5 rounded shadow-sm font-bold hover:bg-blue-50">+
                                     Crear Nuevo</button>
                             </div>
@@ -1237,9 +1260,82 @@
 
         <div id="print-area" class="hidden"></div>
 
+        <!-- GROUP CREATOR MODAL -->
+        <!-- MOVED MODAL TO BOTTOM -->
+
         <script>
             const API_URL = "https://menuia.onrender.com";
             const socket = io(API_URL);
+
+            // --- AUDIO NOTIFICATIONS ---
+            function playOrderNotification() {
+                // 1. Oscillator Beep (Classic Digital Alarm)
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        const ctx = new AudioContext();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(440, ctx.currentTime);
+                        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // High pitch
+                        osc.frequency.setValueAtTime(440, ctx.currentTime + 0.2);
+                        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+
+                        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.5);
+                    }
+                } catch (e) { console.error("Audio Context Error", e); }
+
+                // 2. TTS
+                if ('speechSynthesis' in window) {
+                    // Cancel any ongoing speech
+                    window.speechSynthesis.cancel();
+
+                    const speech = new SpeechSynthesisUtterance("¡Atención! Tienes un nuevo pedido en iafood.");
+                    speech.lang = 'es-MX';
+                    speech.rate = 1.0;
+                    speech.volume = 1.0;
+                    speech.pitch = 1.1; // Slightly higher/urgent
+                    window.speechSynthesis.speak(speech);
+                }
+            }
+
+            function testAudio() {
+                playOrderNotification();
+                alert("Si escuchaste el sonido, las notificaciones están activas.");
+                // Request Permission logic
+                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+            }
+
+            socket.on('new-order', (data) => {
+                console.log("🔔 Nuevo Pedido SOCKET:", data);
+                playOrderNotification();
+
+                // Refresh Monitor if visible
+                if (!document.getElementById('view-orders').classList.contains('hidden')) {
+                    fetchAndRenderOrders(currentOrderFilter);
+                }
+
+                // Show visual toast?
+                alert("¡Nuevo Pedido Recibido!");
+                // Using alert might be invasive, but effective for admin. 
+                // Better: rely on the audio + list refresh. 
+                // Attempting to notify via browser api if possible?
+                if (Notification.permission === "granted") {
+                    new Notification("Nuevo Pedido", { body: "Revisa el panel de administración." });
+                } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+            });
 
             let SESSION = { slug: null, password: null, data: null };
             let currentCategory = 'promos';
@@ -1266,6 +1362,7 @@
                 if (viewId === 'qr') renderQR('simple');
                 if (viewId === 'orders') fetchAndRenderOrders(currentOrderFilter);
                 if (viewId === 'dashboard') updateFinances();
+                if (viewId === 'finances') renderFinances();
                 if (viewId === 'promotions') renderPromoTab();
 
                 const saveBtn = document.querySelector('button[onclick="saveChanges()"]');
@@ -1299,6 +1396,20 @@
 
                         localStorage.setItem('shop_slug', slug); localStorage.setItem('shop_pass', password);
                         socket.emit('join-store', slug);
+
+                        // MIGRATION: If legacy shop has no categories array, create default one from existing keys
+                        if (!SESSION.data.config.categories || SESSION.data.config.categories.length === 0) {
+                            const defaults = [
+                                { id: 'promos', name: (SESSION.data.config.categoryTitles?.promos || '🔥 Promociones') },
+                                { id: 'especiales', name: (SESSION.data.config.categoryTitles?.especiales || '⭐ Recomendados') },
+                                { id: 'clasicos', name: (SESSION.data.config.categoryTitles?.clasicos || '🍽️ Menú Principal') },
+                                { id: 'extras', name: (SESSION.data.config.categoryTitles?.extras || '🥤 Bebidas y Otros') }
+                            ];
+                            // Only add if they actually have content or we want to force common structure
+                            // Let's force defaults so tabs appear
+                            SESSION.data.config.categories = defaults;
+                        }
+
                         initDashboard();
                     } else alert("Credenciales incorrectas");
                 } catch (e) { alert("Error de conexión"); }
@@ -1367,12 +1478,8 @@
                 document.getElementById('conf-high-demand-time').value = c.highDemandTime || '';
                 toggleHighDemandInput();
 
-                ['promos', 'especiales', 'clasicos', 'extras'].forEach(key => {
-                    const title = (c.categoryTitles && c.categoryTitles[key]) ? c.categoryTitles[key] : key.charAt(0).toUpperCase() + key.slice(1);
-                    document.getElementById(`cat-title-${key}`).value = title;
-                    const menuBtn = document.getElementById(`btn-cat-${key}`);
-                    if (menuBtn) menuBtn.innerText = title;
-                });
+                renderCategoryTabs();
+                renderCategoriesList();
 
                 // Initial Finance Load
                 updateFinances();
@@ -1613,21 +1720,53 @@
                 document.getElementById('detail-payment').innerText = order.paymentMethod || 'N/A';
 
                 // Customer
-                document.getElementById('detail-cust-name').innerText = order.ref || 'Cliente General';
+                document.getElementById('detail-cust-name').innerText = order.customerName || order.ref || 'Cliente General';
                 document.getElementById('detail-cust-phone').innerText = order.customerPhone || 'N/A';
-                document.getElementById('detail-cust-address').innerText = order.address || 'Recoger en Tienda / N/A';
+
+                // Address & Note
+                let addrHtml = order.address || 'Recoger en Tienda / N/A';
+                if (order.note) {
+                    addrHtml += `<div class="mt-2 text-xs bg-yellow-50 text-yellow-800 p-2 rounded border border-yellow-100">
+                        <i class="fa-regular fa-comment-dots mr-1"></i> <strong>Nota de Entrega:</strong> ${order.note}
+                    </div>`;
+                }
+                document.getElementById('detail-cust-address').innerHTML = addrHtml;
 
                 // Items
                 const itemsList = document.getElementById('detail-items-list');
                 if (order.items && order.items.length > 0) {
                     itemsList.innerHTML = order.items.map(i => {
-                        const opts = (i.options || []).map(o => typeof o === 'string' ? o : o.name).join(', ');
-                        const optsHtml = opts ? `<div class="text-[10px] text-gray-500 mt-0.5 bg-gray-100 px-1.5 py-0.5 rounded inline-block"><i class="fa-solid fa-plus-circle text-xs mr-1"></i>${opts}</div>` : '';
+                        let htmlModifiers = '';
+
+                        // New Format (Array)
+                        if (i.modifiers && Array.isArray(i.modifiers) && i.modifiers.length > 0) {
+                            htmlModifiers = i.modifiers.map(m => `
+                                <div class="text-[10px] text-gray-500 mt-0.5 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                                    <i class="fa-solid fa-plus-circle text-xs mr-1"></i>${m.name} (+MX$${m.price})
+                                </div>
+                             `).join('');
+                        }
+                        // Legacy Format
+                        else if (i.options && i.options.length > 0) {
+                            const opts = i.options.map(o => typeof o === 'string' ? o : o.name).join(', ');
+                            htmlModifiers = `<div class="text-[10px] text-gray-500 mt-0.5 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                                <i class="fa-solid fa-plus-circle text-xs mr-1"></i>${opts}
+                            </div>`;
+                        }
+
+                        let extrasHtml = '';
+                        if (i.cutlery) extrasHtml += `<span class="text-[10px] text-blue-600 font-bold mr-2"><i class="fa-solid fa-utensils"></i> Con Cubiertos</span>`;
+                        if (i.note) extrasHtml += `<div class="text-[10px] text-orange-600 italic block mt-1">" ${i.note} "</div>`;
+
                         return `
                     <div class="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
                         <div class="flex-1">
                             <span class="font-bold text-gray-800 text-sm">${i.qty}x ${i.name}</span>
-                            ${optsHtml}
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${htmlModifiers}
+                            </div>
+                            ${extrasHtml ? `<div class="mt-1">${extrasHtml}</div>` : ''}
+                            ${i.desc ? `<div class="text-[11px] text-gray-500 italic mt-0.5">${i.desc}</div>` : ''}
                         </div>
                         <span class="font-bold text-gray-600 text-sm">$${(i.price * i.qty).toFixed(2)}</span>
                     </div>`;
@@ -1636,26 +1775,125 @@
                     itemsList.innerHTML = '<p class="text-gray-400 text-center text-sm">Sin artículos registrados</p>';
                 }
 
-                document.getElementById('detail-total').innerText = order.total || '$0.00';
+                // Costs Breakdown
+                const costs = order.costs || {};
+                const subtotal = costs.subtotal ? `<div class="flex justify-between text-xs text-gray-500 mb-1"><span>Subtotal</span><span>$${parseFloat(costs.subtotal).toFixed(2)}</span></div>` : '';
+                const shipping = costs.shipping !== undefined ? `<div class="flex justify-between text-xs text-gray-500 mb-1"><span>Envío</span><span>${costs.shipping === 0 ? 'Gratis' : '$' + parseFloat(costs.shipping).toFixed(2)}</span></div>` : '';
+                const tip = costs.tip > 0 ? `<div class="flex justify-between text-xs text-gray-500 mb-1"><span>Propina</span><span>$${parseFloat(costs.tip).toFixed(2)}</span></div>` : '';
+                const service = costs.service > 0 ? `<div class="flex justify-between text-xs text-gray-500 mb-1"><span>Otros Cargos</span><span>$${parseFloat(costs.service).toFixed(2)}</span></div>` : '';
+                const discount = costs.discount > 0 ? `<div class="flex justify-between text-xs text-red-500 mb-1"><span>Descuento</span><span>-$${parseFloat(costs.discount).toFixed(2)}</span></div>` : '';
 
-                // Active button highlight
-                document.querySelectorAll('.status-btn').forEach(b => {
-                    if (b.getAttribute('onclick').includes(`'${order.status}'`)) {
-                        b.classList.add('ring-2', 'ring-offset-1', 'ring-gray-400');
+                if (itemsList.nextElementSibling) {
+                    // CALC GANANCIA NETA
+                    let rawTotal = 0;
+                    if (typeof order.total === 'string') {
+                        rawTotal = parseFloat(order.total.replace(/[^0-9.]/g, ''));
                     } else {
-                        b.classList.remove('ring-2', 'ring-offset-1', 'ring-gray-400');
+                        rawTotal = parseFloat(order.total || 0);
                     }
-                });
+
+                    const pMethod = order.paymentMethod || 'Efectivo';
+                    // 5% si Efectivo, 8% si Tarjeta
+                    const feePercent = pMethod === 'Efectivo' ? 0.05 : 0.08;
+                    const feeAmount = rawTotal * feePercent;
+
+                    // Ganancia = Total - Comision - OtrosCargos (Service Fee es para la plataforma)
+                    const serviceFee = parseFloat(costs.service || 0);
+                    const profit = rawTotal - feeAmount - serviceFee;
+
+                    itemsList.nextElementSibling.innerHTML = `
+                         <div class="pt-2 space-y-1">
+                            ${subtotal}
+                            ${shipping}
+                            ${tip}
+                            ${service}
+                            ${discount}
+                            <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200 mt-2">
+                                <span class="font-bold text-gray-600">Total Final</span>
+                                <span class="font-bold text-xl text-green-600">${order.total || '$0.00'}</span>
+                            </div>
+
+                            <!-- GANANCIA BOX -->
+                             <div class="mt-3 bg-gray-100 p-2 rounded-lg border border-gray-200">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Comisión (${(feePercent * 100).toFixed(0)}%)</span>
+                                    <span>-$${feeAmount.toFixed(2)}</span>
+                                </div>
+                                 <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Cargos Servicio</span>
+                                    <span>-$${serviceFee.toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-gray-300 pt-1 mt-1">
+                                    <span class="font-bold text-xs text-gray-700">Tu Ganancia Neta</span>
+                                    <span class="font-bold text-sm text-blue-600 border border-blue-200 bg-blue-50 px-2 rounded">$${profit.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('detail-total').innerText = order.total || '$0.00';
+                }
+
+                // Init Single Toggle Button
+                updateToggleButton(order.status);
 
                 m.classList.remove('hidden');
+            }
+
+            function updateToggleButton(status) {
+                const btn = document.getElementById('btn-status-toggle');
+                if (!btn) return;
+
+                // Reset classes
+                btn.className = "w-full py-4 rounded-xl text-lg font-bold shadow-md transition transform active:scale-95 flex items-center justify-center gap-2";
+                btn.disabled = false;
+
+                if (status === 'pending') {
+                    btn.classList.add('bg-orange-500', 'text-white', 'hover:bg-orange-600');
+                    btn.innerHTML = `<i class="fa-solid fa-fire-burner"></i> Empezar A Cocinar`;
+                    btn.dataset.next = 'preparing';
+                }
+                else if (status === 'preparing') {
+                    btn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+                    btn.innerHTML = `<i class="fa-solid fa-box-open"></i> Marcar Listo`;
+                    btn.dataset.next = 'ready';
+                }
+                else if (status === 'ready') {
+                    btn.classList.add('bg-purple-600', 'text-white', 'hover:bg-purple-700');
+                    btn.innerHTML = `<i class="fa-solid fa-motorcycle"></i> Enviar Pedido`;
+                    btn.dataset.next = 'delivering';
+                }
+                else if (status === 'delivering') {
+                    btn.classList.add('bg-green-600', 'text-white', 'hover:bg-green-700');
+                    btn.innerHTML = `<i class="fa-solid fa-check-circle"></i> Finalizar Pedido`;
+                    btn.dataset.next = 'completed';
+                }
+                else if (status === 'completed') {
+                    btn.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                    btn.innerHTML = `<i class="fa-solid fa-lock"></i> Pedido Completado`;
+                    btn.disabled = true;
+                    btn.dataset.next = '';
+                }
+            }
+
+            async function toggleOrderStatus() {
+                const btn = document.getElementById('btn-status-toggle');
+                const nextStatus = btn.dataset.next;
+                if (!nextStatus) return;
+
+                await updateOrderStatus(nextStatus);
             }
 
             async function updateOrderStatus(newStatus) {
                 if (!currentDetailOrder) return;
 
-                const btn = event.target;
-                const originalText = btn.innerText;
-                btn.innerText = "...";
+                if (!currentDetailOrder) return;
+
+                const btn = document.getElementById('btn-status-toggle') || event.target; // Fallback
+                const originalContent = btn.innerHTML;
+                if (btn.id === 'btn-status-toggle') btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...';
+                else btn.innerText = "...";
+                btn.disabled = true;
 
                 try {
                     const res = await fetch(`${API_URL}/api/orders/update-status`, {
@@ -1680,18 +1918,147 @@
                         fetchAndRenderOrders(currentOrderFilter); // Refresh list behind
                     } else {
                         alert("Error al actualizar");
+                        btn.innerHTML = originalContent;
+                        btn.disabled = false;
                     }
                 } catch (e) {
                     alert("Error de conexión");
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
                 }
-                btn.innerText = originalText;
             }
 
-            // --- MENU LOGIC ---
+            // --- CATEGORY & MENU LOGIC ---
+
+            function renderCategoryTabs() {
+                const cats = SESSION.data.config.categories || [];
+                // Fallback for old data if needed, but backend ensures defaults
+                const container = document.getElementById('product-tabs');
+
+                // Ensure currentCategory is valid
+                if (cats.length > 0 && !cats.find(c => c.id === currentCategory)) {
+                    currentCategory = cats[0].id;
+                }
+
+                container.innerHTML = cats.map(c => `
+                    <button onclick="renderMenuGrid('${c.id}')" 
+                        class="px-4 py-2 text-sm whitespace-nowrap ${currentCategory === c.id ? 'font-bold text-blue-600 border-b-2 border-blue-600' : 'font-medium text-gray-500 hover:text-gray-800'}">
+                        ${c.name}
+                    </button>
+                `).join('');
+            }
+
+            function renderCategoriesList() {
+                const container = document.getElementById('categories-list');
+                const cats = SESSION.data.config.categories || [];
+
+                if (cats.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-center text-gray-400 py-2">Sin categorías</p>';
+                    return;
+                }
+
+                container.innerHTML = cats.map((c, idx) => `
+                    <div class="flex justify-between items-center group bg-gray-50 rounded p-2 hover:bg-gray-100 transition">
+                         <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span class="text-xs font-bold text-gray-700">${c.name}</span>
+                        </div>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="deleteCategory('${c.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function openCategoryCreator() {
+                document.getElementById('category-creator').classList.remove('hidden');
+                document.getElementById('new-cat-name').value = '';
+                document.getElementById('new-cat-name').focus();
+            }
+
+            function closeCategoryCreator() {
+                document.getElementById('category-creator').classList.add('hidden');
+            }
+
+            function saveCategory() {
+                const name = document.getElementById('new-cat-name').value.trim();
+                if (!name) return alert("Escribe un nombre");
+
+                // Generate Slug ID
+                const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (!id) return alert("Nombre inválido");
+
+                if (!SESSION.data.config.categories) SESSION.data.config.categories = [];
+
+                // Check dupes
+                if (SESSION.data.config.categories.find(c => c.id === id)) return alert(`Ya existe una categoría con este identificador interno: "${id}". Intenta con otro nombre.`);
+
+                SESSION.data.config.categories.push({ id, name, isDefault: false });
+                if (!SESSION.data.menu[id]) SESSION.data.menu[id] = [];
+
+                closeCategoryCreator();
+                renderCategoriesList();
+                renderCategoryTabs();
+                saveDataToServer(false);
+            }
+
+            function deleteCategory(id) {
+                const products = SESSION.data.menu[id] || [];
+                const hasProducts = products.length > 0;
+
+                let confirmMsg = `¿Borrar categoría?`;
+                if (hasProducts) {
+                    confirmMsg += `\n\n⚠️ Esta categoría tiene ${products.length} productos.\nSe moverán automáticamente a otra categoría disponible.`;
+                }
+
+                if (confirm(confirmMsg)) {
+                    if (hasProducts) {
+                        // Find a target (first one that is not the one being deleted)
+                        let target = SESSION.data.config.categories.find(c => c.id !== id);
+
+                        // If no other category exists, create a backup "General" one
+                        if (!target) {
+                            if (!SESSION.data.config.categories) SESSION.data.config.categories = [];
+                            const newId = 'general';
+                            SESSION.data.config.categories.push({ id: newId, name: 'General', isDefault: false });
+                            target = SESSION.data.config.categories.find(c => c.id === newId);
+                            if (!SESSION.data.menu[newId]) SESSION.data.menu[newId] = [];
+                        }
+
+                        // Move items
+                        if (!SESSION.data.menu[target.id]) SESSION.data.menu[target.id] = [];
+                        SESSION.data.menu[target.id].push(...products);
+
+                        alert(`Los productos se han movido a la categoría: "${target.name}"`);
+                    }
+
+                    // Remove from config
+                    SESSION.data.config.categories = SESSION.data.config.categories.filter(c => c.id !== id);
+
+                    // Now safe to delete the key as items are moved (or empty)
+                    delete SESSION.data.menu[id];
+
+                    // Reset current view if needed
+                    if (SESSION.data.config.categories.length > 0) {
+                        if (currentCategory === id) {
+                            currentCategory = SESSION.data.config.categories[0].id; // Switch to first available
+                        }
+                    } else {
+                        currentCategory = null;
+                    }
+
+                    renderCategoriesList();
+                    renderCategoryTabs();
+                    if (currentCategory) renderMenuGrid(currentCategory);
+                    else document.getElementById('menu-grid').innerHTML = '<div class="text-center text-gray-400">Sin categorías</div>';
+
+                    saveDataToServer(false);
+                }
+            }
+
             function renderMenuGrid(cat) {
                 currentCategory = cat;
-                if (typeof editingGroupIdx === 'undefined') window.editingGroupIdx = -1; // Ensure it exists
-                document.querySelectorAll('[id^="btn-cat-"]').forEach(b => { if (b.id === `btn-cat-${cat}`) b.className = "px-4 py-2 text-sm font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap"; else b.className = "px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 whitespace-nowrap"; });
+                renderCategoryTabs(); // Re-render to update active state
 
                 if (!SESSION.data.menu || !SESSION.data.menu[cat]) {
                     document.getElementById('menu-grid').innerHTML = '<div class="text-center text-gray-400">Sin productos</div>';
@@ -1702,42 +2069,15 @@
                 document.getElementById('menu-grid').innerHTML = items.map((item, idx) => `<div class="bg-white border border-gray-100 rounded-xl p-3 flex gap-3 hover:shadow-md transition group"><img src="${item.image || 'https://via.placeholder.com/80'}" class="w-20 h-20 rounded-lg object-cover bg-gray-100"><div class="flex-1 min-w-0"><h4 class="font-bold text-gray-800 truncate">${item.name}</h4><div class="flex justify-between items-center mt-2"><span class="font-bold text-green-600">$${item.price}</span><div class="flex gap-2 opacity-0 group-hover:opacity-100 transition"><button onclick="editProduct('${cat}', ${idx})" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct('${cat}', ${idx})" class="text-red-500 hover:bg-red-50 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button></div></div></div></div>`).join('');
             }
 
-            function openGroupCreator() {
-                document.getElementById('group-creator').classList.remove('hidden');
-
-                // Si NO estamos editando (llamado desde "Nuevo"), limpiar todo
-                if (window.editingGroupIdx === -1) {
-                    document.getElementById('group-creator-title').innerText = "Crear Grupo";
-                    document.getElementById('new-group-name').value = '';
-                    document.getElementById('new-group-multi').checked = false;
-                    document.getElementById('new-group-required').checked = false;
-
-                    const maxInput = document.getElementById('new-group-max');
-                    if (maxInput) maxInput.value = '';
-
-                    const repeatCheck = document.getElementById('new-group-repeats');
-                    if (repeatCheck) repeatCheck.checked = false;
-
-                    toggleMultiOptions();
-                    document.getElementById('new-group-options-list').innerHTML = '';
-                    addOptionRow();
-                } else {
-                    document.getElementById('group-creator-title').innerText = "Editar Grupo";
-                }
+            function openGroupCreatorAdvanced() {
+                document.getElementById('group-creator-advanced').classList.remove('hidden');
+                document.getElementById('new-group-name').value = '';
+                document.getElementById('new-group-type').value = 'single';
+                document.getElementById('new-group-required').value = 'false';
+                document.getElementById('new-group-options-list').innerHTML = '';
+                addOptionRow();
             }
-            function closeGroupCreator() {
-                document.getElementById('group-creator').classList.add('hidden');
-                window.editingGroupIdx = -1; // Reset al cerrar
-            }
-
-            function toggleMultiOptions() {
-                const isMulti = document.getElementById('new-group-multi').checked;
-                const settings = document.getElementById('multi-options-settings');
-                if (settings) {
-                    if (isMulti) settings.classList.remove('hidden');
-                    else settings.classList.add('hidden');
-                }
-            }
+            function closeGroupCreatorAdvanced() { document.getElementById('group-creator-advanced').classList.add('hidden'); }
 
             function addOptionRow() {
                 const d = document.createElement('div'); d.className = "flex gap-2 mb-2 items-center option-row"; d.innerHTML = `<input type="text" placeholder="Ej: Queso" class="flex-1 text-xs border border-gray-300 rounded p-1.5 option-name"><input type="number" placeholder="$0" class="w-16 text-xs border border-gray-300 rounded p-1.5 option-price" min="0"><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-times"></i></button>`; document.getElementById('new-group-options-list').appendChild(d);
@@ -1751,108 +2091,62 @@
 
                 const groups = SESSION.data.menu.groups;
                 if (groups.length === 0) { document.getElementById('groups-list').innerHTML = `<div class="text-gray-400 text-xs text-center py-2 italic">Sin grupos aún.</div>`; return; }
-                document.getElementById('groups-list').innerHTML = groups.map((g, idx) => {
-                    const multiBadge = g.multiSelect ? '<span class="text-[9px] bg-blue-100 text-blue-600 px-1.5 rounded border border-blue-200">Multi</span>' : '<span class="text-[9px] bg-gray-100 text-gray-500 px-1.5 rounded border border-gray-200">Único</span>';
-                    const reqBadge = g.required ? '<span class="text-[9px] bg-red-100 text-red-600 px-1.5 rounded border border-red-200">Obligatorio</span>' : '<span class="text-[9px] bg-green-100 text-green-600 px-1.5 rounded border border-green-200">Opcional</span>';
-
-                    let extraInfo = '';
-                    if (g.multiSelect) {
-                        if (g.maxSelection > 0) extraInfo += `<span class="text-[9px] text-gray-400 ml-1">Max: ${g.maxSelection}</span>`;
-                        if (g.allowRepeats) extraInfo += `<span class="text-[9px] text-purple-400 ml-1"><i class="fa-solid fa-repeat"></i></span>`;
-                    }
-
-                    return `
+                document.getElementById('groups-list').innerHTML = groups.map((g, idx) => `
                 <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm relative group">
                     <div class="flex justify-between items-start mb-1">
-                        <div>
-                            <span class="font-bold text-sm text-gray-800 block">${g.name}</span>
-                            <div class="flex items-center flex-wrap gap-1 mt-1 mb-1">${multiBadge}${reqBadge}${extraInfo}</div>
-                            <div class="text-[10px] text-gray-400">${g.options.length} opciones</div>
-                        </div>
-                        <div class="flex gap-2">
-                             <button onclick="editGroup(${idx})" class="text-blue-400 hover:text-blue-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-pen"></i></button>
-                             <button onclick="deleteGroup(${idx})" class="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+                        <div><span class="font-bold text-sm text-gray-800">${g.name}</span><div class="text-[10px] text-gray-400">${g.options.length} opciones</div></div>
+                        <button onclick="deleteGroup(${idx})" class="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
                     </div>
-                </div>`;
-                }).join('');
+                </div>`).join('');
             }
 
-            function editGroup(idx) {
-                editingGroupIdx = idx;
-                const g = SESSION.data.menu.groups[idx];
+            function openGroupCreatorAdvanced() {
+                console.log("Opening Group Creator V2...");
+                const modal = document.getElementById('group-creator-advanced');
+                if (!modal) { console.error("Modal not found!"); return; }
 
-                openGroupCreator(); // Abre el panel, pero como editingGroupIdx != -1, no borra nada (haremos carga manual aquí)
+                // Force display flex
+                modal.style.display = 'flex';
+                modal.classList.remove('hidden');
 
-                document.getElementById('new-group-name').value = g.name;
-                document.getElementById('new-group-multi').checked = g.multiSelect || false;
-                document.getElementById('new-group-required').checked = g.required || false;
+                document.getElementById('new-group-name').value = '';
+                document.getElementById('new-group-type').value = 'single';
+                document.getElementById('new-group-required').value = 'false';
+                document.getElementById('new-group-options-list').innerHTML = '';
+                addOptionRow();
+            }
 
-                const maxInput = document.getElementById('new-group-max');
-                if (maxInput) maxInput.value = g.maxSelection || '';
+            function closeGroupCreatorAdvanced() {
+                const modal = document.getElementById('group-creator-advanced');
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            }
 
-                const repeatCheck = document.getElementById('new-group-repeats');
-                if (repeatCheck) repeatCheck.checked = g.allowRepeats || false;
-
-                toggleMultiOptions();
-
-                // Cargar opciones
-                const list = document.getElementById('new-group-options-list');
-                list.innerHTML = '';
-                g.options.forEach(o => {
-                    const d = document.createElement('div'); d.className = "flex gap-2 mb-2 items-center option-row";
-                    d.innerHTML = `<input type="text" value="${o.name}" class="flex-1 text-xs border border-gray-300 rounded p-1.5 option-name"><input type="number" value="${o.price}" class="w-16 text-xs border border-gray-300 rounded p-1.5 option-price" min="0"><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-times"></i></button>`;
-                    list.appendChild(d);
-                });
+            function addOptionRow() {
+                const d = document.createElement('div');
+                d.className = "flex gap-2 mb-2 items-center option-row";
+                d.innerHTML = `<input type="text" name="option_name[]" placeholder="Ej: Queso" class="flex-1 text-xs border border-gray-300 rounded p-1.5 option-name"><input type="number" name="option_price[]" placeholder="$0" class="w-16 text-xs border border-gray-300 rounded p-1.5 option-price" min="0"><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-times"></i></button>`;
+                document.getElementById('new-group-options-list').appendChild(d);
             }
 
             function saveGroup() {
                 const name = document.getElementById('new-group-name').value;
+                const type = document.getElementById('new-group-type').value;
+                const required = document.getElementById('new-group-required').value === 'true';
+
                 const opts = Array.from(document.querySelectorAll('.option-row')).map(r => ({ name: r.querySelector('.option-name').value, price: parseFloat(r.querySelector('.option-price').value) || 0 })).filter(o => o.name);
-
-                // Nuevos campos
-                const multiSelect = document.getElementById('new-group-multi').checked;
-                const required = document.getElementById('new-group-required').checked;
-
-                let maxSelection = 0;
-                let allowRepeats = false;
-
-                if (multiSelect) {
-                    const maxInput = document.getElementById('new-group-max');
-                    if (maxInput) maxSelection = parseInt(maxInput.value) || 0;
-
-                    const repeatCheck = document.getElementById('new-group-repeats');
-                    if (repeatCheck) allowRepeats = repeatCheck.checked;
-
-                    // Validación: Si no se repiten, el max no puede ser mayor que las opciones
-                    if (!allowRepeats && maxSelection > opts.length) {
-                        alert(`Atención: Pusiste un máximo de ${maxSelection} opciones, pero solo agregaste ${opts.length}. Se ajustará el límite a ${opts.length} ya que no permitiste repetir.`);
-                        maxSelection = opts.length;
-                    }
-                }
-
                 if (!name || opts.length === 0) return alert("Faltan datos");
 
                 if (!SESSION.data.menu.groups) SESSION.data.menu.groups = [];
 
-                const groupData = {
-                    id: editingGroupIdx === -1 ? 'g-' + Date.now() : SESSION.data.menu.groups[editingGroupIdx].id,
+                SESSION.data.menu.groups.push({
+                    id: 'g-' + Date.now(),
                     name,
-                    options: opts,
-                    multiSelect: multiSelect,
-                    required: required,
-                    maxSelection: maxSelection,
-                    allowRepeats: allowRepeats
-                };
-
-                if (editingGroupIdx === -1) {
-                    SESSION.data.menu.groups.push(groupData);
-                } else {
-                    SESSION.data.menu.groups[editingGroupIdx] = groupData;
-                }
-
-                renderGroups();
-                closeGroupCreator();
+                    type,
+                    required,
+                    options: opts
+                });
+                renderGroups(); closeGroupCreatorAdvanced();
                 saveDataToServer(false);
             }
 
@@ -1867,6 +2161,18 @@
             function openProductModal(idx = -1) {
                 editingIdx = idx;
                 document.getElementById('product-modal').classList.remove('hidden');
+
+                // Populate Category Select
+                const cats = SESSION.data.config.categories || [];
+                const catSelect = document.getElementById('prod-category-select');
+                catSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+                // If cats are empty (shouldn't happen if defaults exist), add at least the current one if custom
+                if (cats.length === 0) {
+                    catSelect.innerHTML = `<option value="${currentCategory}">${currentCategory}</option>`;
+                }
+
+                catSelect.value = currentCategory;
 
                 const groupContainer = document.getElementById('prod-group-container');
                 const groups = (SESSION.data.menu && SESSION.data.menu.groups) ? SESSION.data.menu.groups : [];
@@ -1913,6 +2219,8 @@
             function saveProductInternal() {
                 const name = document.getElementById('prod-name').value;
                 const price = parseFloat(document.getElementById('prod-price').value);
+                const targetCat = document.getElementById('prod-category-select').value;
+
                 if (!name || isNaN(price)) return alert("Faltan datos (Nombre o Precio inválido)");
 
                 // Collect Selected Groups
@@ -1933,14 +2241,32 @@
                 if (item.groupId) delete item.groupId;
 
                 if (editingIdx === -1) {
-                    if (!SESSION.data.menu[currentCategory]) SESSION.data.menu[currentCategory] = [];
-                    SESSION.data.menu[currentCategory].push(item);
+                    // NEW PRODUCT
+                    if (!SESSION.data.menu[targetCat]) SESSION.data.menu[targetCat] = [];
+                    SESSION.data.menu[targetCat].push(item);
                 } else {
-                    SESSION.data.menu[currentCategory][editingIdx] = item;
+                    // EDITING PRODUCT
+                    if (targetCat === currentCategory) {
+                        // Same Category
+                        SESSION.data.menu[currentCategory][editingIdx] = item;
+                    } else {
+                        // Category Changed -> Move Item
+                        SESSION.data.menu[currentCategory].splice(editingIdx, 1);
+                        if (!SESSION.data.menu[targetCat]) SESSION.data.menu[targetCat] = [];
+                        SESSION.data.menu[targetCat].push(item);
+                    }
                 }
 
                 closeProductModal();
-                renderMenuGrid(currentCategory);
+                // Render the target category if moved, or stay in current?
+                // UX decision: if moved, maybe user wants to see it there, but jumping views is jarring.
+                // Let's render the Current View. If item moved AWAY, it disappears. If item created in OTHER, it won't show unless we switch.
+                // If created in DIFFERENT category, maybe switch to it?
+                if (targetCat !== currentCategory) {
+                    renderMenuGrid(targetCat);
+                } else {
+                    renderMenuGrid(currentCategory);
+                }
                 saveDataToServer(false);
             }
 
@@ -1982,7 +2308,7 @@
                 cfg.isOpen = document.getElementById('conf-is-open').checked;
                 cfg.highDemand = document.getElementById('conf-high-demand-active').checked;
                 cfg.highDemandTime = document.getElementById('conf-high-demand-time').value;
-                cfg.categoryTitles = { promos: document.getElementById('cat-title-promos').value, especiales: document.getElementById('cat-title-especiales').value, clasicos: document.getElementById('cat-title-clasicos').value, extras: document.getElementById('cat-title-extras').value };
+                // cfg.categoryTitles removed (Dynamic Categories Used)
 
                 // Guardar Datos Bancarios
                 cfg.bankDetails = {
@@ -1997,7 +2323,8 @@
                     const res = await fetch(`${API_URL}/api/shop/${SESSION.slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: SESSION.password, data: { config: cfg, menu: SESSION.data.menu, promotions: SESSION.data.promotions || [] } }) });
                     if (res.ok) {
                         if (showNotifications && btn) { btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Listo!'; setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000); }
-                        ['promos', 'especiales', 'clasicos', 'extras'].forEach(key => { const btn = document.getElementById(`btn-cat-${key}`); if (btn) btn.innerText = cfg.categoryTitles[key] || key.toUpperCase(); });
+                        // Re-render tabs just in case config changed (though categories are handled separate)
+                        renderCategoryTabs();
                     } else {
                         if (showNotifications && btn) { btn.innerHTML = 'Error'; btn.disabled = false; }
                         alert("Error al guardar en servidor.");
@@ -2461,6 +2788,23 @@
 
             // --- PROMOTIONS LOGIC ---
             let currentPromoType = null;
+            let currentPromoImage = null; // Store base64 image
+
+            function handlePromoImage(input) {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        currentPromoImage = e.target.result;
+                        // Preview?
+                        const preview = document.getElementById('promo-img-preview');
+                        if (preview) {
+                            preview.src = currentPromoImage;
+                            preview.classList.remove('hidden');
+                        }
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
 
             function renderPromoTab() {
                 renderActivePromos();
@@ -2469,6 +2813,7 @@
 
             function setPromoType(type) {
                 currentPromoType = type;
+                currentPromoImage = null; // Reset image
 
                 // UI Updates
                 document.querySelectorAll('.promo-type-btn').forEach(btn => {
@@ -2486,7 +2831,11 @@
                 if (itemSelects.length > 0) {
                     const items = [];
                     if (SESSION.data.menu) {
-                        ['clasicos', 'especiales', 'extras'].forEach(cat => {
+                        // Use dynamic categories if available, else fallback
+                        const cats = SESSION.data.config.categories || [];
+                        const catIds = cats.length > 0 ? cats.map(c => c.id) : ['clasicos', 'especiales', 'extras'];
+
+                        catIds.forEach(cat => {
                             if (SESSION.data.menu[cat]) {
                                 SESSION.data.menu[cat].forEach(i => items.push({ name: i.name, cat: cat }));
                             }
@@ -2512,6 +2861,11 @@
                     <div class="bg-blue-50 p-2 rounded text-xs text-blue-700 font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-info-circle"></i> Paga 1 y lleva 2</div>
                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Producto (Aplica 2x1)</label><select id="promo-item" class="item-selector w-full text-sm border p-2 rounded"></select></div>
                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Precio del Pack (2 unidades)</label><input type="number" id="promo-price" class="w-full text-sm border p-2 rounded" placeholder="Generalmente el precio de 1"></div>
+                    <div class="mt-2 text-center">
+                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Imagen Promocional (Opcional)</label>
+                         <input type="file" accept="image/*" onchange="handlePromoImage(this)" class="text-xs">
+                         <img id="promo-img-preview" src="" class="hidden w-full h-32 object-cover rounded mt-2 border">
+                    </div>
                 `;
                 }
                 if (type === 'combo') {
@@ -2519,6 +2873,11 @@
                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Nombre del Combo</label><input type="text" id="promo-title" class="w-full text-sm border p-2 rounded font-bold" placeholder="Ej: Paquete Pareja"></div>
                      <div><label class="text-[10px] font-bold text-gray-400 uppercase">Descripción (Qué incluye)</label><textarea id="promo-desc" class="w-full text-sm border p-2 rounded" placeholder="Ej: 2 Hamburguesas + 2 Refrescos"></textarea></div>
                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Precio Combo</label><input type="number" id="promo-price" class="w-full text-sm border p-2 rounded font-bold text-green-600" placeholder="$0.00"></div>
+                    <div class="mt-2 text-center">
+                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Imagen Promocional (Opcional)</label>
+                         <input type="file" accept="image/*" onchange="handlePromoImage(this)" class="text-xs">
+                         <img id="promo-img-preview" src="" class="hidden w-full h-32 object-cover rounded mt-2 border">
+                    </div>
                 `;
                 }
                 if (type === 'flash') {
@@ -2529,12 +2888,23 @@
                         <div><label class="text-[10px] font-bold text-gray-400 uppercase">Duración (Horas)</label><input type="number" id="promo-duration" class="w-full text-sm border p-2 rounded" value="24"></div>
                     </div>
                     <div class="bg-yellow-50 p-2 rounded text-xs text-yellow-700 mt-2 font-bold"><i class="fa-solid fa-bolt"></i> Se mostrará con cuenta regresiva.</div>
+                    <div class="mt-2 text-center">
+                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Imagen Promocional (Opcional)</label>
+                         <input type="file" accept="image/*" onchange="handlePromoImage(this)" class="text-xs">
+                         <img id="promo-img-preview" src="" class="hidden w-full h-32 object-cover rounded mt-2 border">
+                    </div>
                 `;
                 }
                 if (type === 'gift') {
                     return `
                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Si compra...</label><select id="promo-item-buy" class="item-selector w-full text-sm border p-2 rounded"></select></div>
                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Se lleva GRATIS...</label><input type="text" id="promo-gift-item" class="w-full text-sm border p-2 rounded" placeholder="Ej: Refresco Chico"></div>
+                    <div><label class="text-[10px] font-bold text-gray-400 uppercase">Precio Referencia / Paquete ($)</label><input type="number" id="promo-price" class="w-full text-sm border p-2 rounded font-bold text-green-600" placeholder="$0.00"></div>
+                    <div class="mt-2 text-center">
+                         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Imagen Promocional (Opcional)</label>
+                         <input type="file" accept="image/*" onchange="handlePromoImage(this)" class="text-xs">
+                         <img id="promo-img-preview" src="" class="hidden w-full h-32 object-cover rounded mt-2 border">
+                    </div>
                 `;
                 }
                 return '';
@@ -2547,7 +2917,8 @@
                     id: 'p-' + Date.now(),
                     type: currentPromoType,
                     active: true,
-                    createdAt: new Date()
+                    createdAt: new Date(),
+                    image: currentPromoImage // Save the image
                 };
 
                 // Field extraction based on type
@@ -2583,6 +2954,7 @@
                 else if (currentPromoType === 'gift') {
                     promo.buyItem = document.getElementById('promo-item-buy').value;
                     promo.giftItem = document.getElementById('promo-gift-item').value;
+                    promo.price = document.getElementById('promo-price').value;
                     if (!promo.buyItem || !promo.giftItem) return alert("Faltan datos");
                     promo.title = `Compra ${promo.buyItem} y recibe regalo`;
                     promo.desc = `Gratis: ${promo.giftItem}`;
@@ -2644,7 +3016,143 @@
 
 
 
+
+            // --- FINANCES VIEW LOGIC ---
+            function renderFinances() {
+                const tbody = document.getElementById('finances-table-body');
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Calculando...</td></tr>';
+
+                // Week Range (Mon-Sun)
+                const startOfWeek = moment().startOf('isoWeek');
+                const endOfWeek = moment().endOf('isoWeek');
+
+                // Filter orders inside range
+                const weekOrders = ordersHistory.filter(o => {
+                    const d = moment(o.createdAt);
+                    return d.isBetween(startOfWeek, endOfWeek, null, '[]') && o.status !== 'cancelled';
+                });
+
+                let totalProfit = 0;
+                let cashReceived = 0;
+                let balance = 0; // (Net Card Income) - (Cash Liabilities) OR (Total Profit) - (Cash Received)
+
+                let rowsHtml = '';
+
+                if (weekOrders.length === 0) {
+                    rowsHtml = '<tr><td colspan="5" class="p-8 text-center text-gray-400">No hay ventas registradas esta semana.</td></tr>';
+                } else {
+                    rowsHtml = weekOrders.map(o => {
+                        // Logic must match openOrderDetails
+                        let rawTotal = 0;
+                        if (typeof o.total === 'string') {
+                            rawTotal = parseFloat(o.total.replace(/[^0-9.]/g, ''));
+                        } else {
+                            rawTotal = parseFloat(o.total || 0);
+                        }
+
+                        const pMethod = o.paymentMethod || 'Efectivo';
+                        const feePercent = pMethod === 'Efectivo' ? 0.05 : 0.08;
+                        const feeAmount = rawTotal * feePercent;
+                        const serviceFee = parseFloat(o.costs?.service || 0);
+                        const discount = parseFloat(o.costs?.discount || 0);
+
+                        // Net Profit = Total - Commission - ServiceFee
+                        const netProfit = rawTotal - feeAmount - serviceFee;
+
+                        // Accumulators
+                        totalProfit += netProfit;
+
+                        if (pMethod === 'Efectivo') {
+                            cashReceived += rawTotal;
+                        }
+
+                        return `
+                             <tr class="hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+                                <td class="p-4 font-bold text-gray-700">#${o.dailyId}</td>
+                                <td class="p-4 text-gray-500">${moment(o.createdAt).format('ddd D HH:mm')}</td>
+                                <td class="p-4 font-bold text-gray-800">$${rawTotal.toFixed(2)}</td>
+                                <td class="p-4">
+                                    <span class="text-xs font-bold px-2 py-1 rounded-full ${pMethod === 'Efectivo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">
+                                        ${pMethod}
+                                    </span>
+                                </td>
+                                <td class="p-4 font-bold text-emerald-600">$${netProfit.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                balance = totalProfit - cashReceived;
+
+                // Update DOM
+                document.getElementById('fin-total-profit').innerText = `$${totalProfit.toFixed(2)}`;
+                document.getElementById('fin-cash-received').innerText = `$${cashReceived.toFixed(2)}`;
+
+                const balEl = document.getElementById('fin-balance');
+                balEl.innerText = `$${balance.toFixed(2)}`;
+                if (balance >= 0) {
+                    balEl.className = "text-2xl font-bold text-blue-600"; // A favor restaurante
+                } else {
+                    balEl.className = "text-2xl font-bold text-red-500"; // Debe a plataforma
+                }
+
+                tbody.innerHTML = rowsHtml;
+            }
         </script>
+        <!-- GROUP CREATOR MODAL (MOVED) -->
+        <div id="group-creator-advanced" style="z-index: 9999 !important; display: none;"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden fade-enter">
+                <div
+                    class="bg-blue-600 px-6 py-4 border-b border-blue-500 flex justify-between items-center text-white">
+                    <h3 class="font-bold text-lg"><i class="fa-solid fa-layer-group mr-2"></i> Nuevo Grupo</h3>
+                    <button onclick="closeGroupCreatorAdvanced()" class="hover:bg-blue-700 p-1 rounded"><i
+                            class="fa-solid fa-times"></i></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Nombre del Grupo (ej: Salsas)</label>
+                        <input type="text" id="new-group-name"
+                            class="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-blue-500"
+                            placeholder="Nombre...">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Tipo de Selección</label>
+                            <select id="new-group-type"
+                                class="w-full border border-gray-300 rounded p-2 text-sm outline-none bg-white">
+                                <option value="single">Selección Única (Radio)</option>
+                                <option value="multiple">Selección Múltiple (Check)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Requerido</label>
+                            <select id="new-group-required"
+                                class="w-full border border-gray-300 rounded p-2 text-sm outline-none bg-white">
+                                <option value="false">Opcional</option>
+                                <option value="true">Obligatorio</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-xs font-bold text-gray-700">Opciones</label>
+                            <button onclick="addOptionRow()" class="text-xs text-blue-600 font-bold hover:underline">+
+                                Agregar Opción</button>
+                        </div>
+                        <div id="new-group-options-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            <!-- Dynamic -->
+                        </div>
+                    </div>
+
+                    <button onclick="saveGroup()"
+                        class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">Guardar
+                        Grupo</button>
+                </div>
+            </div>
+        </div>
 </body>
 
 </html>
