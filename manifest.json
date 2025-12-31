@@ -1,6 +1,6 @@
 {
-    "name": "Menú Cliente",
-    "short_name": "Cliente App",
+    "name": "ia food",
+    "short_name": "ia food",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#ffffff",
