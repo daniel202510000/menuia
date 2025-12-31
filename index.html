@@ -1469,6 +1469,24 @@
 
                 if (data.success && data.orders.length > 0) {
                     globalOrders = data.orders;
+
+                    // --- CRITICAL FIX FOR CROSS-DEVICE/ANDROID ---
+                    // Save the most recent order to localStorage so the Socket listener can track it.
+                    const latest = globalOrders[0];
+                    if (latest) {
+                        const currentStoredId = localStorage.getItem('last_active_order');
+
+                        // If we found a newer/different order, update storage and re-init socket
+                        if (latest._id !== currentStoredId) {
+                            console.log("🔄 Syncing remote order to local device:", latest._id);
+                            localStorage.setItem('last_active_order', latest._id);
+                            if (latest.shopSlug) localStorage.setItem('active_shop_slug', latest.shopSlug);
+
+                            // Re-init listener now that we have the ID
+                            initGlobalNotifications();
+                        }
+                    }
+
                     renderGlobalTracker();
                 } else {
                     document.getElementById('global-order-tracker').classList.add('hidden');
