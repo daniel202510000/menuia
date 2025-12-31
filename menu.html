@@ -1416,6 +1416,14 @@
         }
 
         async function submitOrder() {
+            // SECURITY: Ensure user is logged in before paying
+            if (!localStorage.getItem('user_phone')) {
+                if (confirm("🔒 Necesitas iniciar sesión para realizar un pedido.\n\n¿Quieres ir a la página de inicio para ingresar?")) {
+                    window.location.href = 'index.html';
+                }
+                return;
+            }
+
             if (CART.length === 0) return;
 
             // Remove currency symbol and commas for clean parsing
@@ -1699,3 +1707,4 @@
 </body>
 
 </html>
+
