@@ -1,6 +1,6 @@
-{
-    "name": "Panel Restaurante",
-    "short_name": "Admin App",
+{{
+    "name": "ia food tienda",
+    "short_name": "ia food tienda",
     "start_url": "./admin.html",
     "display": "standalone",
     "background_color": "#f3f4f6",
