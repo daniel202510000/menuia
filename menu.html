@@ -598,7 +598,25 @@
             }
         }
 
+        // REGISTRY FOR CLICK HANDLING (Fixes syntax errors with special chars)
+        let RENDERED_ITEMS = {};
+
+        function registerItem(item) {
+            const id = 'item_' + Math.random().toString(36).substr(2, 9);
+            RENDERED_ITEMS[id] = item;
+            return id;
+        }
+
+        function openDetailById(id) {
+            const item = RENDERED_ITEMS[id];
+            if (item) openDetail(item);
+            else console.error("Item not found in registry:", id);
+        }
+
         function renderShop() {
+            // Reset Registry on re-render
+            RENDERED_ITEMS = {};
+
             const config = SHOP_DATA.config;
             const menu = SHOP_DATA.menu;
 
@@ -658,10 +676,10 @@
                 document.getElementById('promos-container').innerHTML = allPromos.map(p => {
                     const old = p._oldPrice || p.originalPrice || p.oldPrice;
                     const discount = old && old > p.price ? Math.round(((old - p.price) / old) * 100) : 0;
-                    const safeItem = encodeURIComponent(JSON.stringify(p));
+                    const tempId = registerItem(p);
 
                     return `
-                    <div onclick='openDetail(JSON.parse(decodeURIComponent("${safeItem}")))' class="min-w-[140px] w-[140px] cursor-pointer group">
+                    <div onclick="openDetailById('${tempId}')" class="min-w-[140px] w-[140px] cursor-pointer group">
                         <div class="relative w-full h-32 rounded-2xl overflow-hidden mb-2 shadow-sm bg-gray-100">
                             <img src="${p.image || 'https://placehold.co/200'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 transition-all"> 
                              <!-- Discount Badge (Black) -->
@@ -691,9 +709,9 @@
 
             if (favorites.length > 0) {
                 document.getElementById('favorites-container').innerHTML = favorites.map((p, idx) => {
-                    const safeItem = encodeURIComponent(JSON.stringify(p));
+                    const tempId = registerItem(p);
                     return `
-                    <div onclick='openDetail(JSON.parse(decodeURIComponent("${safeItem}")))' class="min-w-[140px] w-[140px] cursor-pointer relative group">
+                    <div onclick="openDetailById('${tempId}')" class="min-w-[140px] w-[140px] cursor-pointer relative group">
                          <div class="relative w-full h-32 rounded-2xl overflow-hidden mb-2 bg-gray-100 shadow-sm">
                             <img src="${p.image || 'https://placehold.co/150'}" class="w-full h-full object-cover">
                             <!-- RANK NUMBER (Black/Dark) -->
@@ -783,9 +801,9 @@
 
 
         function renderFullCard(item) {
-            const safeItem = encodeURIComponent(JSON.stringify(item));
+            const tempId = registerItem(item);
             return `
-                <div class="flex gap-4 justify-between group item-card-dom" data-name="${item.name.toLowerCase()}" onclick='openDetail(JSON.parse(decodeURIComponent("${safeItem}")))' style="cursor: pointer;">
+                <div class="flex gap-4 justify-between group item-card-dom cursor-pointer" data-name="${item.name.toLowerCase()}" onclick="openDetailById('${tempId}')">
                     <!-- Text Info -->
                     <div class="flex-1 flex flex-col justify-start">
                         <h4 class="font-bold text-black text-base mb-1 leading-tight">${item.name}</h4>
