@@ -1,25 +1,9 @@
-const CACHE_NAME = 'menuia-cache-v1';
-const urlsToCache = [
-    './',
-    './index.html',
-    './menu.html',
-    './admin.html',
-    './manifest.json',
-    './manifest-admin.json',
-    './icon-client-gen.png',
-    './icon-admin-custom.png'
-];
+const CACHE_NAME = 'menuia-dynamic-v1';
 
+// SIMPLIFIED SW: No pre-caching strict list to prevent install failures.
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Install');
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
-    );
-    self.skipWaiting();
+    console.log('[Service Worker] Install Immediate');
+    self.skipWaiting(); // Build momentum
 });
 
 self.addEventListener('activate', (event) => {
@@ -28,14 +12,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Network First, Fallback to Cache strategy
     event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // Return cache hit or network
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request);
+        fetch(event.request)
+            .then((networkResponse) => {
+                return caches.open(CACHE_NAME).then((cache) => {
+                    // Cache successful GET requests
+                    if (event.request.method === 'GET' && networkResponse.status === 200) {
+                        cache.put(event.request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                });
+            })
+            .catch(() => {
+                return caches.match(event.request);
             })
     );
 });
@@ -55,4 +45,3 @@ self.addEventListener('notificationclick', (event) => {
         })
     );
 });
-
