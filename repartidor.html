@@ -411,7 +411,8 @@
         }
 
         function updateProfileUI() {
-            document.getElementById('dash-name').innerText = CURRENT_DRIVER.name;
+            const nameEl = document.getElementById('dash-name');
+            if (nameEl && CURRENT_DRIVER) nameEl.innerText = CURRENT_DRIVER.name;
             // Fetch earnings if needed
         }
 
@@ -806,9 +807,13 @@
         });
 
 
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js');
+        // VALIDATE PWA SUPPORT BEFORE REGISTERING
+        if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Registration Warning (Local/Insecure):', err));
+        } else {
+            console.log("PWA Service Worker requires HTTPS or localhost.");
         }
 
     </script>
