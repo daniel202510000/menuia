@@ -141,14 +141,40 @@
             </div>
 
             <!-- Profile / Online Indicator -->
-            <div class="pointer-events-auto relative">
-                <div class="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-md">
+            <div class="pointer-events-auto relative" onclick="toggleProfileMenu()">
+                <div
+                    class="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-md cursor-pointer">
                     <div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100"><i
                             class="fa-solid fa-user"></i></div>
-                    <!-- Img placeholder -->
                 </div>
                 <div id="status-indicator-dot"
                     class="absolute bottom-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+            </div>
+
+            <!-- MENU DROPDOWN (Hidden) -->
+            <div id="profile-menu"
+                class="hidden absolute top-20 right-4 bg-white rounded-xl shadow-xl p-2 w-48 z-50 animate-fade-in-up border border-gray-100">
+                <button onclick="window.location.reload()"
+                    class="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right text-blue-500"></i> Refrescar
+                </button>
+                <div class="h-px bg-gray-100 my-1"></div>
+                <!-- Auto Accept Toggle -->
+                <div class="px-4 py-2 flex items-center justify-between">
+                    <span class="text-xs font-bold text-gray-600">Auto-Aceptar</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-accept-toggle" class="sr-only peer"
+                            onchange="toggleAutoAccept()">
+                        <div
+                            class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500">
+                        </div>
+                    </label>
+                </div>
+                <div class="h-px bg-gray-100 my-1"></div>
+                <button onclick="logoutDriver()"
+                    class="w-full text-left px-4 py-2 hover:bg-red-50 rounded-lg text-sm font-bold text-red-600 flex items-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
             </div>
         </div>
 
@@ -315,7 +341,8 @@
 
         const socket = io(API_URL);
         let CURRENT_DRIVER = JSON.parse(localStorage.getItem('menuia_driver')) || null;
-        let IS_ONLINE = localStorage.getItem('menuia_driver_online') === 'true'; // Restore status
+        let IS_ONLINE = localStorage.getItem('menuia_driver_online') === 'true';
+        let AUTO_ACCEPT = localStorage.getItem('menuia_auto_accept') === 'true'; // Auto Accept State
 
         let CURRENT_ORDER = null;
         let MAP_INSTANCE = null;
@@ -333,6 +360,8 @@
                     updateOnlineUI(true);
                     socket.emit('driver-online', CURRENT_DRIVER._id);
                 }
+                // Restore auto-accept toggle state
+                document.getElementById('auto-accept-toggle').checked = AUTO_ACCEPT;
             }
         });
 
@@ -485,18 +514,14 @@
             }
         }
 
-        async function toggleOnline() {
+        function toggleOnline() {
             // Permission Check before Going Online
             if (!IS_ONLINE) {
                 // Request Notifications
                 if (Notification.permission === 'default' || Notification.permission === 'denied') {
-                    const permission = await Notification.requestPermission();
-                    if (permission !== 'granted') {
-                        document.getElementById('perm-warning').classList.remove('hidden');
-                        // return; // Optional: Force them? No, let them proceed but warn.
-                    } else {
-                        document.getElementById('perm-warning').classList.add('hidden');
-                    }
+                    Notification.requestPermission().then(p => {
+                        if (p === 'granted') document.getElementById('perm-warning').classList.add('hidden');
+                    });
                 }
             }
 
@@ -512,6 +537,26 @@
             } else {
                 socket.emit('driver-offline', CURRENT_DRIVER._id);
                 releaseWakeLock();
+            }
+        }
+
+        // NEW FEATURES LOGIC
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleAutoAccept() {
+            AUTO_ACCEPT = document.getElementById('auto-accept-toggle').checked;
+            localStorage.setItem('menuia_auto_accept', AUTO_ACCEPT);
+            // Optional: visual feedback toast
+        }
+
+        function logoutDriver() {
+            if (confirm("¿Cerrar sesión?")) {
+                localStorage.removeItem('menuia_driver');
+                localStorage.removeItem('menuia_driver_online');
+                window.location.reload();
             }
         }
 
@@ -583,9 +628,26 @@
             // Check if already ignored locally
             if (localStorage.getItem(`ignored_${order._id}`)) return;
 
+            // Auto-Accept Logic
+            if (AUTO_ACCEPT) {
+                console.log("⚡ Auto-accepting order:", order._id);
+                PENDING_ORDER = order; // Need to set this for acceptOrder to work
+                acceptOrder();
+                return;
+            }
+
             console.log("Nueva solicitud:", order);
             PENDING_ORDER = order;
             showRequestModal(order);
+        });
+
+        // HANDLE SYNC: If taken by another driver
+        socket.on('order-taken', (data) => {
+            // If we are looking at this order in modal, close it
+            if (PENDING_ORDER && (PENDING_ORDER._id === data.orderId || PENDING_ORDER.id === data.orderId)) {
+                closeRequestModal();
+                alert(data.message || "Pedido ya tomado.");
+            }
         });
 
         socket.on('order-accepted', (order) => {
