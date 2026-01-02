@@ -65,7 +65,7 @@
 
         <!-- Install Button (Auth) -->
         <button id="pwa-install-btn"
-            class="hidden absolute top-6 right-6 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md transition flex items-center gap-2 z-20"
+            class="absolute top-6 right-6 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md transition flex items-center gap-2 z-20"
             onclick="installPWA()">
             <i class="fa-solid fa-download"></i> Instalar App
         </button>
@@ -140,9 +140,10 @@
             <div class="flex items-center gap-2 pointer-events-auto">
                 <!-- Install Button (Dash) MOVED HERE -->
                 <button id="pwa-install-dash-btn" onclick="installPWA()"
-                    class="hidden bg-orange-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg animate-pulse">
+                    class="bg-orange-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg animate-pulse">
                     <i class="fa-solid fa-download"></i>
                 </button>
+
 
                 <!-- Status Pill -->
                 <div
@@ -282,7 +283,8 @@
 
         const socket = io(API_URL);
         let CURRENT_DRIVER = JSON.parse(localStorage.getItem('menuia_driver')) || null;
-        let IS_ONLINE = false;
+        let IS_ONLINE = localStorage.getItem('menuia_driver_online') === 'true'; // Restore status
+
         let CURRENT_ORDER = null;
         let MAP_INSTANCE = null;
         let DRIVER_MARKER = null;
@@ -293,6 +295,12 @@
             if (CURRENT_DRIVER) {
                 initMap();
                 showDashboard();
+
+                // RESTORE ONLINE STATE
+                if (IS_ONLINE) {
+                    updateOnlineUI(true);
+                    socket.emit('driver-online', CURRENT_DRIVER._id);
+                }
             }
         });
 
@@ -336,6 +344,12 @@
 
                     // Socket login
                     socket.emit('driver-login', { phone, password });
+
+                    // Restore online if was online
+                    if (IS_ONLINE) {
+                        socket.emit('driver-online', CURRENT_DRIVER._id);
+                    }
+
                 } else {
                     alert(data.error);
                 }
@@ -418,13 +432,24 @@
 
         // --- CONTROLS ---
         function toggleOnline() {
+            // Toggle Logic
+            IS_ONLINE = !IS_ONLINE;
+            localStorage.setItem('menuia_driver_online', IS_ONLINE); // Save status
+            updateOnlineUI(IS_ONLINE);
+
+            if (IS_ONLINE) {
+                socket.emit('driver-online', CURRENT_DRIVER._id);
+            } else {
+                socket.emit('driver-offline', CURRENT_DRIVER._id);
+            }
+        }
+
+        function updateOnlineUI(isOnline) {
             const btn = document.getElementById('go-online-btn');
             const dot = document.getElementById('status-dot');
             const txt = document.getElementById('status-text');
 
-            if (!IS_ONLINE) {
-                // GO ONLINE
-                IS_ONLINE = true;
+            if (isOnline) {
                 btn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
                 btn.classList.add('bg-red-500', 'hover:bg-red-600');
                 btn.innerHTML = `<i class="fa-solid fa-pause"></i> DESCONECTARSE`;
@@ -432,11 +457,7 @@
                 dot.classList.remove('bg-red-500');
                 dot.classList.add('bg-green-500');
                 txt.innerText = "En Línea - Buscando pedidos...";
-
-                socket.emit('driver-online', CURRENT_DRIVER._id);
             } else {
-                // GO OFFLINE
-                IS_ONLINE = false;
                 btn.classList.remove('bg-red-500', 'hover:bg-red-600');
                 btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
                 btn.innerHTML = `<i class="fa-solid fa-power-off"></i> CONECTARSE`;
@@ -444,8 +465,6 @@
                 dot.classList.remove('bg-green-500');
                 dot.classList.add('bg-red-500');
                 txt.innerText = "Desconectado";
-
-                socket.emit('driver-offline', CURRENT_DRIVER._id);
             }
         }
 
@@ -647,10 +666,7 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            const btn = document.getElementById('pwa-install-btn');
-            const dashBtn = document.getElementById('pwa-install-dash-btn');
-            if (btn) btn.classList.remove('hidden');
-            if (dashBtn) dashBtn.classList.remove('hidden');
+            // Buttons are visible by default now
         });
 
         async function installPWA() {
