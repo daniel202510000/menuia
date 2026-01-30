@@ -3,133 +3,423 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Restaurante - So Sushi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>So Sushi Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #111827;
-            color: #f3f4f6;
-            font-family: sans-serif;
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: #f1f5f9;
+            /* Slate 100 */
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .order-card {
-            transition: all 0.3s;
+        /* Hide Scrollbar but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
 
-        .order-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
+        /* Bottom Sheet Animation */
+        .bottom-sheet {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .status-pending {
-            background-color: #fef08a;
-            color: #854d0e;
+        .bottom-sheet.active {
+            transform: translateY(0);
         }
 
-        .status-cooking {
-            background-color: #fed7aa;
-            color: #9a3412;
+        /* Card Pulse Animation for New Orders */
+        @keyframes subtle-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
         }
 
-        .status-ready {
-            background-color: #bbf7d0;
-            color: #166534;
-        }
-
-        .status-delivering {
-            background-color: #bfdbfe;
-            color: #1e40af;
+        .new-order-pulse {
+            animation: subtle-pulse 2s infinite;
         }
     </style>
 </head>
 
-<body class="min-h-screen p-4 md:p-8">
+<body class="pb-24">
 
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-orange-500">
-                <i class="fa-solid fa-store mr-2 text-red-600"></i> Panel de Cocina
-            </h1>
+    <!-- TOP APP BAR -->
+    <header
+        class="fixed top-0 left-0 right-0 h-16 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 z-40 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-8 h-8 rounded-full bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                <i class="fa-solid fa-fish-fins text-white text-xs"></i>
+            </div>
+            <h1 class="text-lg font-bold tracking-tight text-white">Admin Panel</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <div id="status-indicator"
+                class="px-2 py-0.5 rounded-full bg-gray-800 border border-gray-700 text-[10px] font-bold text-gray-400 flex items-center gap-1.5 transition-colors">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span> OFFLINE
+            </div>
+            <button onclick="toggleSettings()"
+                class="w-10 h-10 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-400 transition">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+        </div>
+    </header>
 
-            <div class="flex items-center gap-4 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                <span class="text-sm font-bold text-gray-700">🔥 Alta Demanda:</span>
+    <!-- STATUS TABS / FILTERS -->
+    <div
+        class="fixed top-16 left-0 right-0 bg-slate-900 z-30 px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar border-b border-slate-800">
+        <button onclick="setFilter('all')" id="tab-all"
+            class="px-4 py-1.5 rounded-full text-xs font-medium bg-white text-slate-900 whitespace-nowrap transition">
+            Todos
+        </button>
+        <button onclick="setFilter('pending')" id="tab-pending"
+            class="px-4 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 whitespace-nowrap transition">
+            Pendientes <span id="badge-pending"
+                class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[9px] hidden">0</span>
+        </button>
+        <button onclick="setFilter('cooking')" id="tab-cooking"
+            class="px-4 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 whitespace-nowrap transition">
+            Cocina
+        </button>
+        <button onclick="setFilter('ready')" id="tab-ready"
+            class="px-4 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 whitespace-nowrap transition">
+            Listos
+        </button>
+        <button onclick="setFilter('delivering')" id="tab-delivering"
+            class="px-4 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 whitespace-nowrap transition">
+            Reparto
+        </button>
+    </div>
+
+    <!-- MAIN CONTENT (Orders List) -->
+    <main id="orders-container" class="mt-32 px-4 flex flex-col gap-4 max-w-2xl mx-auto">
+        <!-- JS Injected Cards -->
+        <div class="flex flex-col items-center justify-center py-20 text-slate-600 gap-4">
+            <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+            <p class="text-sm">Cargando pedidos...</p>
+        </div>
+    </main>
+
+    <!-- SETTINGS BOTTOM SHEET -->
+    <div id="settings-overlay" class="fixed inset-0 bg-black/60 z-50 hidden transition-opacity opacity-0"
+        onclick="toggleSettings()"></div>
+    <div id="settings-sheet"
+        class="fixed bottom-0 left-0 right-0 bg-slate-800 rounded-t-3xl z-50 bottom-sheet max-h-[85vh] overflow-y-auto border-t border-slate-700 shadow-2xl">
+        <div class="w-12 h-1.5 bg-slate-600 rounded-full mx-auto mt-3 mb-6"></div>
+
+        <div class="px-6 pb-8 space-y-8">
+            <h2 class="text-xl font-bold text-white mb-4">Configuración de Tienda</h2>
+
+            <!-- Control 1: Estado General -->
+            <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-white text-sm">Estado de Emergencia</h3>
+                    <p class="text-xs text-slate-400 mt-1">Cierra la tienda inmediatamente</p>
+                </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="high-demand-toggle" class="sr-only peer" onchange="toggleHighDemand()">
+                    <input type="checkbox" id="force-close-toggle" class="sr-only peer" onchange="saveStoreConfig()">
                     <div
-                        class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600">
+                        class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500">
                     </div>
                 </label>
             </div>
-        </div>
 
-        <!-- Dashboard Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white p-4 rounded-lg border-l-4 border-yellow-400 shadow-sm">
-                <p class="text-xs text-gray-500 uppercase">Pendientes</p>
-                <p id="count-pending" class="text-2xl font-bold text-gray-800">0</p>
+            <!-- Control 2: Horarios -->
+            <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                <h3 class="font-bold text-white text-sm mb-3">Horario Automático (24h)</h3>
+                <div class="flex items-center gap-4">
+                    <div class="flex-1">
+                        <label class="text-[10px] uppercase text-slate-400 font-bold mb-1 block">Apertura</label>
+                        <input type="number" id="open-hour"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-white font-mono"
+                            placeholder="16">
+                    </div>
+                    <span class="text-slate-500">-</span>
+                    <div class="flex-1">
+                        <label class="text-[10px] uppercase text-slate-400 font-bold mb-1 block">Cierre</label>
+                        <input type="number" id="close-hour"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-white font-mono"
+                            placeholder="23">
+                    </div>
+                </div>
+                <button onclick="saveStoreConfig()"
+                    class="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition">
+                    Guardar Horario
+                </button>
             </div>
-            <div class="bg-white p-4 rounded-lg border-l-4 border-orange-400 shadow-sm">
-                <p class="text-xs text-gray-500 uppercase">Cocinando</p>
-                <p id="count-cooking" class="text-2xl font-bold text-gray-800">0</p>
-            </div>
-            <div class="bg-white p-4 rounded-lg border-l-4 border-green-400 shadow-sm">
-                <p class="text-xs text-gray-500 uppercase">Listos</p>
-                <p id="count-ready" class="text-2xl font-bold text-gray-800">0</p>
-            </div>
-            <div class="bg-white p-4 rounded-lg border-l-4 border-blue-400 shadow-sm">
-                <p class="text-xs text-gray-500 uppercase">En Reparto</p>
-                <p id="count-delivering" class="text-2xl font-bold text-gray-800">0</p>
-            </div>
-        </div>
 
-        <!-- Orders Grid -->
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- JS Inject -->
+            <!-- Control 3: Alta Demanda -->
+            <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-white text-sm">Modo Alta Demanda</h3>
+                    <p class="text-xs text-slate-400 mt-1">Muestra banner de "Pedidos Lentos"</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="high-demand-toggle" class="sr-only peer" onchange="toggleHighDemand()">
+                    <div
+                        class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500">
+                    </div>
+                </label>
+            </div>
+
+            <div class="text-center text-[10px] text-slate-600 pt-4">
+                So Sushi Admin v2.1 &bull; Android Style Redesign
+            </div>
         </div>
     </div>
 
-    <!-- Audio para notificaciones -->
+    <!-- Audio Settings -->
     <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
     <script>
+        // --- LOGIC ---
         let orders = [];
         let lastOrderCount = 0;
+        let currentFilter = 'all';
 
+        // Filters UI
+        function setFilter(filter) {
+            currentFilter = filter;
+            // Update Tab UI
+            const tabs = ['all', 'pending', 'cooking', 'ready', 'delivering'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === filter) {
+                    btn.className = "px-4 py-1.5 rounded-full text-xs font-medium bg-white text-slate-900 whitespace-nowrap transition shadow-sm";
+                } else {
+                    btn.className = "px-4 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 whitespace-nowrap transition hover:bg-slate-700";
+                }
+            });
+            renderOrders();
+        }
+
+        // --- API CALLS ---
         async function fetchOrders() {
             try {
                 const res = await fetch('https://menuia.onrender.com/api/orders?active=true');
                 const newOrders = await res.json();
 
-                // Detect arrived orders
+                // Sound & Haptic Notification
                 if (newOrders.length > lastOrderCount && lastOrderCount !== 0) {
                     playNotification();
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
                 }
+
                 lastOrderCount = newOrders.length;
                 orders = newOrders;
                 renderOrders();
-                updateStats();
-            } catch (err) {
-                console.error("Error fetching orders:", err);
+                updateIndicators();
+            } catch (err) { console.error("Error/Offline", err); }
+        }
+
+        async function updateStatus(id, newStatus) {
+            // Android-like quick action, no confirm alert for speed, just direct action (maybe undo later)
+            // But let's keep confirm for destructive actions like cancel
+            if (newStatus === 'cancelled' && !confirm("¿Seguro que deseas cancelar?")) return;
+
+            try {
+                // Optimistic UI update
+                const orderIdx = orders.findIndex(o => o._id === id);
+                if (orderIdx > -1) {
+                    orders[orderIdx].status = newStatus;
+                    renderOrders();
+                }
+
+                await fetch(`https://menuia.onrender.com/api/orders/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                fetchOrders(); // Sync real state
+            } catch (err) { alert("Error de red"); fetchOrders(); }
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('orders-container');
+
+            let filtered = orders;
+            if (currentFilter !== 'all') {
+                filtered = orders.filter(o => o.status === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 text-slate-600 gap-4 opacity-50">
+                    <i class="fa-regular fa-folder-open text-4xl"></i>
+                    <p class="text-sm">No hay pedidos en esta sección</p>
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(order => {
+                const date = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const total = order.total ? `$${order.total.toFixed(0)}` : 'N/A';
+
+                // Status Logic
+                let statusColor = "bg-slate-700 text-slate-300";
+                let actionBtn = "";
+
+                if (order.status === 'pending') {
+                    statusColor = "bg-yellow-500/20 text-yellow-500 border border-yellow-500/30";
+                    actionBtn = `<button onclick="updateStatus('${order._id}', 'cooking')" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg text-sm shadow-lg shadow-yellow-900/50 active:scale-95 transition">🔥 Cocinar</button>`;
+                } else if (order.status === 'cooking') {
+                    statusColor = "bg-orange-500/20 text-orange-500 border border-orange-500/30";
+                    actionBtn = `<button onclick="updateStatus('${order._id}', 'ready')" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg text-sm shadow-lg shadow-green-900/50 active:scale-95 transition">✅ Listo</button>`;
+                } else if (order.status === 'ready') {
+                    statusColor = "bg-green-500/20 text-green-500 border border-green-500/30";
+                    actionBtn = `<button onclick="updateStatus('${order._id}', 'delivering')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg text-sm shadow-lg shadow-blue-900/50 active:scale-95 transition">🛵 Enviar</button>`;
+                } else if (order.status === 'delivering') {
+                    statusColor = "bg-blue-500/20 text-blue-500 border border-blue-500/30";
+                    actionBtn = `<button onclick="updateStatus('${order._id}', 'completed')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg text-sm shadow-lg shadow-black/30 active:scale-95 transition">🏁 Completar</button>`;
+                }
+
+                // Add "New Order" visual cue
+                const isNew = (Date.now() - new Date(order.createdAt).getTime()) < 60000; // < 1 min old
+                const pulseClass = isNew && order.status === 'pending' ? 'new-order-pulse border-red-500/50' : 'border-slate-800';
+
+                return `
+                <div class="bg-slate-800 rounded-2xl p-4 border ${pulseClass} shadow-md relative overflow-hidden transition-all">
+                    <!-- Header Card -->
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-3">
+                             <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-300 border border-slate-600">
+                                ${order.customer.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white leading-tight">${order.customer.name}</h3>
+                                <p class="text-[10px] text-slate-400 font-mono mt-0.5">${order.customer.phone}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${statusColor}">
+                                ${translateStatus(order.status)}
+                            </span>
+                            <span class="text-[10px] text-slate-500 font-mono">${date}</span>
+                        </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="bg-slate-900/50 rounded-lg p-3 mb-3 border border-slate-700/50 flex items-start gap-2">
+                        <i class="fa-solid fa-location-dot text-red-500 mt-0.5 text-xs"></i>
+                        <p class="text-xs text-slate-300 leading-relaxed">${order.customer.address}</p>
+                    </div>
+
+                    <!-- Items List -->
+                    <div class="space-y-2 mb-4">
+                        ${order.items.map(item => `
+                            <div class="flex justify-between items-start text-sm text-slate-300 pb-1 border-b border-white/5 last:border-0">
+                                <span class="leading-snug"><span class="font-bold text-white">${item.quantity}x</span> ${item.name} <span class="text-xs text-slate-500 ml-1">(${item.protein})</span></span>
+                            </div>
+                            ${item.note ? `<p class="text-xs text-yellow-500 italic ml-4 mb-1"><i class="fa-solid fa-comment-dots mr-1"></i>${item.note}</p>` : ''}
+                        `).join('')}
+                    </div>
+
+                    <!-- Footer / Actions -->
+                    <div class="flex items-center gap-3 mt-2">
+                        ${actionBtn}
+                        ${order.status === 'pending' ?
+                        `<button onclick="updateStatus('${order._id}', 'cancelled')" class="w-12 h-12 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 active:scale-95 transition"><i class="fa-solid fa-trash"></i></button>`
+                        : ''}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // --- HELPERS ---
+        function updateIndicators() {
+            // Badges
+            const pendingCount = orders.filter(o => o.status === 'pending').length;
+            const badge = document.getElementById('badge-pending');
+            if (pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function translateStatus(status) {
+            const map = { 'pending': 'Pendiente', 'cooking': 'Cocinando', 'ready': 'Listo', 'delivering': 'Ruta', 'completed': 'Entregado', 'cancelled': 'Cancelado' };
+            return map[status] || status;
+        }
+
+        function playNotification() {
+            const audio = document.getElementById('notification-sound');
+            audio.play().catch(e => console.log("Audio requires interaction"));
+        }
+
+        // --- SETTINGS UI LOGIC ---
+        function toggleSettings() {
+            const overlay = document.getElementById('settings-overlay');
+            const sheet = document.getElementById('settings-sheet');
+
+            if (overlay.classList.contains('hidden')) {
+                // Open
+                overlay.classList.remove('hidden');
+                // Trigger reflow
+                void overlay.offsetWidth;
+                overlay.classList.remove('opacity-0');
+                sheet.classList.add('active');
+            } else {
+                // Close
+                overlay.classList.add('opacity-0');
+                sheet.classList.remove('active');
+                setTimeout(() => { overlay.classList.add('hidden'); }, 300);
             }
         }
 
         async function fetchConfig() {
             try {
-                const res = await fetch('https://menuia.onrender.com/api/config/high-demand');
-                const data = await res.json();
-                document.getElementById('high-demand-toggle').checked = data.isHighDemand;
-            } catch (err) { console.error(err); }
+                // High Demand
+                const res1 = await fetch('https://menuia.onrender.com/api/config/high-demand');
+                const data1 = await res1.json();
+                document.getElementById('high-demand-toggle').checked = data1.isHighDemand;
+
+                // Hours
+                const res2 = await fetch('https://menuia.onrender.com/api/config/hours');
+                const data2 = await res2.json();
+                if (data2) {
+                    document.getElementById('open-hour').value = data2.open;
+                    document.getElementById('close-hour').value = data2.close;
+                    document.getElementById('force-close-toggle').checked = data2.force_close;
+                    updateHeaderStatus(data2.force_close);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveStoreConfig() {
+            const open = parseInt(document.getElementById('open-hour').value);
+            const close = parseInt(document.getElementById('close-hour').value);
+            const force_close = document.getElementById('force-close-toggle').checked;
+
+            try {
+                await fetch('https://menuia.onrender.com/api/config/hours', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ open, close, force_close })
+                });
+                updateHeaderStatus(force_close);
+                // Maybe show a small toast?
+            } catch (e) { alert("Error guardando"); }
         }
 
         async function toggleHighDemand() {
@@ -140,104 +430,25 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled })
                 });
-            } catch (err) { console.error(err); alert("Error actualizando configuración"); }
+            } catch (e) { alert("Error"); }
         }
 
-        async function updateStatus(id, newStatus) {
-            if (!confirm(`¿Cambiar estado a ${newStatus}?`)) return;
-            try {
-                await fetch(`https://menuia.onrender.com/api/orders/${id}/status`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: newStatus })
-                });
-                fetchOrders();
-            } catch (err) { alert("Error actualizando pedido"); }
-        }
-
-        function playNotification() {
-            const audio = document.getElementById('notification-sound');
-            audio.play().catch(e => console.log("Audio play failed (interaction needed first)"));
-        }
-
-        function renderOrders() {
-            const container = document.getElementById('orders-grid');
-            container.innerHTML = orders.map(order => {
-                const date = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const total = order.total ? `$${order.total.toFixed(2)}` : 'N/A';
-
-                let nextActionBtn = '';
-                if (order.status === 'pending') {
-                    nextActionBtn = `<button onclick="updateStatus('${order._id}', 'cooking')" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 rounded mt-2">🔥 Cocinar</button>`;
-                } else if (order.status === 'cooking') {
-                    nextActionBtn = `<button onclick="updateStatus('${order._id}', 'ready')" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded mt-2">✅ Listo para Reparto</button>`;
-                } else if (order.status === 'ready') {
-                    nextActionBtn = `<div class="text-center text-sm text-blue-400 font-bold mt-2 animate-pulse">Esperando Repartidor...</div>`;
-                }
-
-                return `
-                <div class="bg-white rounded-xl p-5 border border-gray-200 order-card relative overflow-hidden shadow-sm">
-                    <div class="absolute top-0 right-0 px-3 py-1 bg-gray-100 text-xs font-mono text-gray-500 rounded-bl-lg">
-                        ${date}
-                    </div>
-                    
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-bold text-lg text-gray-900">${order.customer.name}</h3>
-                        <span class="status-badge status-${order.status}">${translateStatus(order.status)}</span>
-                    </div>
-
-                    <div class="space-y-2 mb-4">
-                        ${order.items.map(item => `
-                            <div class="flex justify-between text-sm text-gray-600 border-b border-gray-100 pb-1">
-                                <span><span class="font-bold text-gray-800">${item.quantity}x</span> ${item.name} (${item.protein})</span>
-                            </div>
-                            ${item.note ? `<p class="text-xs text-yellow-600 italic">📝 ${item.note}</p>` : ''}
-                        `).join('')}
-                    </div>
-
-                    <div class="bg-gray-50 p-3 rounded mb-3 text-xs text-gray-500">
-                        <p>📍 ${order.customer.address}</p>
-                        <p>📞 ${order.customer.phone}</p>
-                        <p class="mt-1 font-bold text-gray-800">Total: ${total} <span class="font-normal text-gray-500">(${order.paymentMethod})</span></p>
-                    </div>
-
-                    ${nextActionBtn}
-                    
-                    ${order.status === 'pending' ?
-                        `<button onclick="updateStatus('${order._id}', 'cancelled')" class="w-full border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold py-1 rounded mt-2">Cancelar Pedido</button>`
-                        : ''}
-                </div>
-                `;
-            }).join('');
-        }
-
-        function translateStatus(status) {
-            const map = {
-                'pending': 'Pendiente',
-                'cooking': 'Cocinando',
-                'ready': 'Listo',
-                'delivering': 'En Camino',
-                'completed': 'Entregado',
-                'cancelled': 'Cancelado'
-            };
-            return map[status] || status;
-        }
-
-        function updateStats() {
-            const counts = orders.reduce((acc, o) => {
-                acc[o.status] = (acc[o.status] || 0) + 1;
-                return acc;
-            }, {});
-            document.getElementById('count-pending').innerText = counts['pending'] || 0;
-            document.getElementById('count-cooking').innerText = counts['cooking'] || 0;
-            document.getElementById('count-ready').innerText = counts['ready'] || 0;
-            document.getElementById('count-delivering').innerText = counts['delivering'] || 0;
+        function updateHeaderStatus(isForceClosed) {
+            const indicator = document.getElementById('status-indicator');
+            if (isForceClosed) {
+                indicator.className = "px-2 py-0.5 rounded-full bg-red-900/50 border border-red-700 text-[10px] font-bold text-red-400 flex items-center gap-1.5 transition-colors";
+                indicator.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> CERRADO`;
+            } else {
+                indicator.className = "px-2 py-0.5 rounded-full bg-emerald-900/50 border border-emerald-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 transition-colors";
+                indicator.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ONLINE`;
+            }
         }
 
         // Init
         fetchConfig();
         fetchOrders();
-        setInterval(fetchOrders, 10000); // Poll every 10s
+        setInterval(fetchOrders, 10000);
+
     </script>
 </body>
 
