@@ -19,6 +19,10 @@
     <!-- Leaflet Maps JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <style>
         body {
@@ -824,10 +828,47 @@
         <span id="toast-msg">Producto agregado</span>
     </div>
 
+    <!-- Version Badge -->
+    <div
+        class="fixed top-24 right-4 bg-yellow-300 text-yellow-900 border border-yellow-500 px-2 py-1 rounded text-[10px] font-bold z-50 shadow-lg pointer-events-none opacity-80">
+        v2.0 (Live)
+    </div>
+
     <!-- Javascript Logic -->
     <script>
+        // Force Profile Refresh on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Clear potentially stale user data from older session strutcures
+            try {
+                const u = JSON.parse(localStorage.getItem('user'));
+                if (u && !u.referralCode) {
+                    // If old user object without referral, force fetch
+                    console.log("Old user data detected, refreshing...");
+                    // Check if we can fetch, otherwise logout to be safe
+                }
+            } catch (e) { }
+        });
+
+        // --- CONFIGURACIÓN DE LA TIENDA ---
+        // --- CONFIGURACIÓN DE LA TIENDA ---
+        // --- CONFIGURACIÓN DE LA TIENDA ---
         // --- CONFIGURACIÓN DE LA TIENDA ---
         const STORE_COORDS = { lat: 20.648325, lng: -103.267706 };
+        // const API_URL = 'http://localhost:3000'; 
+        const API_URL = 'https://menuia.onrender.com';
+
+        // Socket.IO
+        const socket = io(API_URL);
+
+        socket.on('config-updated', (config) => {
+            console.log("🔔 Config Updated via Socket:", config);
+            openHour = config.open;
+            closeHour = config.close;
+            forceClose = config.force_close;
+            checkStoreStatus();
+        });
+
+
 
         // Horario de Atención (Formato 24h)
         // Horario de Atención (Formato 24h) - Dinámico
@@ -870,7 +911,7 @@
 
         async function fetchStoreConfig() {
             try {
-                const res = await fetch('https://menuia.onrender.com/api/config/hours');
+                const res = await fetch(`${API_URL}/api/config/hours`);
                 const data = await res.json();
                 if (data) {
                     openHour = data.open;
@@ -1347,24 +1388,7 @@
         }
 
         // JSONP Callback global
-        window.onGeocodeSuccess = function (data) {
-            const display = document.getElementById('header-address-text');
-            const input = document.getElementById('customer-address');
-
-            if (data && data.address) {
-                let shortAddr = data.address.road || data.address.pedestrian || data.address.path || data.address.cycleway || data.address.suburb || data.display_name.split(',')[0];
-                if (data.address.house_number) shortAddr += ` #${data.address.house_number}`;
-                else if (data.address.house_name) shortAddr += ` (${data.address.house_name})`;
-                if (data.address.suburb && !shortAddr.includes(data.address.suburb)) shortAddr += `, ${data.address.suburb}`;
-
-                if (display) { display.innerText = shortAddr; display.title = data.display_name; }
-                if (input && !input.value) input.value = data.display_name;
-            } else {
-                if (display) display.innerText = "Ubicación detectada";
-            }
-        };
-
-        function reverseGeocode(lat, lng) {
+        async function reverseGeocode(lat, lng) {
             const display = document.getElementById('header-address-text');
             const container = document.getElementById('header-location');
             if (!display) return;
@@ -1372,11 +1396,28 @@
             container.classList.remove('hidden');
             display.innerText = "Cargando dirección...";
 
-            const script = document.createElement('script');
-            script.src = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&json_callback=onGeocodeSuccess`;
-            script.onerror = () => { console.warn("JSONP failed"); fallbackGeocode(lat, lng); };
-            document.body.appendChild(script);
-            setTimeout(() => { script.remove(); }, 5000);
+            try {
+                // Modern fetch instead of JSONP
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+                if (!res.ok) throw new Error("Network response was not ok");
+                const data = await res.json();
+
+                if (data && data.address) {
+                    let shortAddr = data.address.road || data.address.pedestrian || data.address.path || data.address.cycleway || data.address.suburb || data.display_name.split(',')[0];
+                    if (data.address.house_number) shortAddr += ` #${data.address.house_number}`;
+                    else if (data.address.house_name) shortAddr += ` (${data.address.house_name})`;
+                    if (data.address.suburb && !shortAddr.includes(data.address.suburb)) shortAddr += `, ${data.address.suburb}`;
+
+                    if (display) { display.innerText = shortAddr; display.title = data.display_name; }
+                    const input = document.getElementById('customer-address');
+                    if (input && !input.value) input.value = data.display_name;
+                } else {
+                    fallbackGeocode(lat, lng);
+                }
+            } catch (e) {
+                console.warn("Primary geocode failed, using fallback:", e);
+                fallbackGeocode(lat, lng);
+            }
         }
 
         async function fallbackGeocode(lat, lng) {
@@ -1698,13 +1739,50 @@
 
             const formSection = document.getElementById('checkout-form');
             const checkoutBtn = document.getElementById('checkout-btn');
-            if (!isCheckoutMode) { formSection.classList.remove('hidden'); checkoutBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-xl"></i> Confirmar Pedido`; isCheckoutMode = true; setTimeout(() => { const modalContent = document.querySelector('.cart-items'); modalContent.scrollTop = modalContent.scrollHeight; }, 100); return; }
+
+            // --- COUPON SELECTOR UI ---
+            let couponSelectHtml = '';
+            if (currentUser && currentUser.coupons && currentUser.coupons.length > 0) {
+                const activeCoupons = currentUser.coupons.filter(c => c.active);
+                if (activeCoupons.length > 0) {
+                    couponSelectHtml = `
+                        <div class="mb-4 bg-green-50 p-2 rounded border border-green-200">
+                            <label class="block text-xs font-bold text-green-700 uppercase mb-1">🎁 Canjear un Cupón</label>
+                            <select id="checkout-coupon" class="w-full bg-white border border-green-300 text-gray-700 text-sm rounded p-2 focus:outline-none focus:border-green-500">
+                                <option value="">-- Sin Cupón --</option>
+                                ${activeCoupons.map(c => `<option value="${c.code}">${c.description || `$${c.amount} Descuento`} (${c.code})</option>`).join('')}
+                            </select>
+                        </div>
+                     `;
+                }
+            }
+
+            if (!isCheckoutMode) {
+                formSection.classList.remove('hidden');
+
+                // Inject Coupon Selector before Payment Method
+                const paymentDiv = document.querySelector('.space-y-2.mb-4');
+                if (!document.getElementById('coupon-container')) {
+                    const container = document.createElement('div');
+                    container.id = 'coupon-container';
+                    container.innerHTML = couponSelectHtml;
+                    formSection.insertBefore(container, paymentDiv);
+                } else {
+                    document.getElementById('coupon-container').innerHTML = couponSelectHtml;
+                }
+
+                checkoutBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-xl"></i> Confirmar Pedido`;
+                isCheckoutMode = true;
+                setTimeout(() => { const modalContent = document.querySelector('.cart-items'); modalContent.scrollTop = modalContent.scrollHeight; }, 100);
+                return;
+            }
 
             const name = document.getElementById('customer-name').value.trim();
             const phone = document.getElementById('customer-phone').value.trim();
             const address = document.getElementById('customer-address').value.trim();
             const addressDetails = document.getElementById('customer-address-details').value.trim();
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+            const couponCode = document.getElementById('checkout-coupon') ? document.getElementById('checkout-coupon').value : null;
 
             if (!name || !phone) { alert("Por favor escribe tu nombre y teléfono."); return; }
             if (!address) { alert("Por favor ingresa tu dirección de entrega completa."); return; }
@@ -1726,7 +1804,8 @@
                 paymentAmount: paymentMethod === 'efectivo' ? paymentAmount : 0,
                 total,
                 shippingCost: currentShippingCost,
-                distanceKm: distanceKm || 0
+                distanceKm: distanceKm || 0,
+                couponCode: couponCode // Send coupon to server
             };
 
             // Enviar al Backend
@@ -1806,15 +1885,23 @@
         // --- AUTH LOGIC ---
         let currentUser = JSON.parse(localStorage.getItem('user')) || null;
 
-        function toggleAuthModal() {
+        function toggleAuthModal(preventReset = false) {
             const modal = document.getElementById('auth-modal');
             const body = document.body;
             modal.classList.toggle('active');
             if (modal.classList.contains('active')) {
                 body.classList.add('modal-open');
-                switchAuthTab('login');
+                if (!preventReset && typeof preventReset !== 'object') {
+                    switchAuthTab('login');
+                    // Ensure tabs are visible (if hidden by profile)
+                    const tabs = document.getElementById('auth-tabs-container');
+                    if (tabs) tabs.classList.remove('hidden');
+                }
             } else {
                 body.classList.remove('modal-open');
+                // Clean up profile view when closing
+                const profileContainer = document.getElementById('auth-profile-container');
+                if (profileContainer) profileContainer.innerHTML = '';
             }
         }
 
@@ -1849,7 +1936,7 @@
                 btn.disabled = true;
                 btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Entrando...`;
 
-                const res = await fetch('https://menuia.onrender.com/api/auth/login', {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone, password })
@@ -1879,15 +1966,16 @@
             const phone = document.getElementById('reg-phone').value;
             const password = document.getElementById('reg-password').value;
             const btn = document.getElementById('btn-reg-submit');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Registrando...`;
 
             try {
-                btn.disabled = true;
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Registrando...`;
+                const referredByCode = document.getElementById('reg-referral') ? document.getElementById('reg-referral').value.trim() : null;
 
-                const res = await fetch('https://menuia.onrender.com/api/auth/register', {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, phone, password })
+                    body: JSON.stringify({ name, phone, password, referredByCode })
                 });
                 const data = await res.json();
 
@@ -1898,10 +1986,11 @@
                     toggleAuthModal();
                     updateProfileUI();
                 } else {
-                    alert(data.message);
+                    alert('Error: ' + data.message);
                 }
             } catch (err) {
-                alert("Error de conexión");
+                console.error(err);
+                alert("Error de conexión: " + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Registrarse";
@@ -1919,7 +2008,123 @@
 
         function toggleProfile() {
             if (currentUser) {
-                logout();
+                showProfileModal();
+            } else {
+                toggleAuthModal();
+            }
+        }
+
+        function updateProfileUI() {
+            const navLabel = document.getElementById('nav-profile-label');
+            const navIcon = document.getElementById('nav-profile-icon');
+
+            if (currentUser) {
+                navLabel.innerText = currentUser.name.split(' ')[0];
+                navIcon.className = "fa-solid fa-user-check text-green-500";
+
+                // Auto-fill checkout fields if empty
+                const nameInput = document.getElementById('customer-name');
+                const phoneInput = document.getElementById('customer-phone');
+                if (nameInput && !nameInput.value) nameInput.value = currentUser.name;
+                if (phoneInput && !phoneInput.value) phoneInput.value = currentUser.phone;
+
+            } else {
+                navLabel.innerText = "Perfil";
+                navIcon.className = "fa-solid fa-user";
+            }
+        }
+
+        // Enhanced Profile Modal
+        async function showProfileModal() {
+            if (!currentUser) return;
+
+            // Re-fetch user data to get latest coupons
+            try {
+                const res = await fetch(`${API_URL}/api/users/${currentUser.id}`);
+                const data = await res.json();
+                if (data && !data.error) {
+                    currentUser = data;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                }
+            } catch (e) { }
+
+            const couponsHtml = currentUser.coupons && currentUser.coupons.length > 0
+                ? currentUser.coupons.map(c => `
+                    <div class="bg-green-50 border border-green-200 p-2 rounded mb-1 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-green-700 text-xs">${c.code}</p>
+                            ${c.type === 'ITEM' || c.description ?
+                        `<p class="text-[10px] text-green-600 font-bold">🎁 ${c.description}</p>` :
+                        `<p class="text-[10px] text-green-600">Desc: $${c.amount} MXN</p>`
+                    }
+                        </div>
+                        <span class="text-[10px] text-gray-500">${c.source ? 'Ref: ' + c.source : ''}</span>
+                    </div>`).join('')
+                : '<p class="text-xs text-gray-400 italic">No tienes cupones no usados.</p>';
+
+            const modalContent = `
+                <div class="text-center animate-fade-in p-4">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-2xl font-bold text-red-600">${currentUser.name.charAt(0)}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-900">${currentUser.name}</h3>
+                    <p class="text-sm text-gray-500 mb-4 font-mono">${currentUser.phone}</p>
+                    
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
+                        <p class="text-[10px] text-blue-600 font-bold uppercase mb-1">Tu Código de Referido</p>
+                        <div class="flex items-center justify-center gap-2">
+                             <span class="font-mono text-xl font-bold text-gray-800 tracking-widest bg-white px-2 rounded border border-blue-100">${currentUser.referralCode || '<i class="fa-solid fa-spinner fa-spin text-sm"></i>'}</span>
+                             ${currentUser.referralCode ? `<button onclick="navigator.clipboard.writeText('${currentUser.referralCode}'); showToast('Código copiado');" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs transition"><i class="fa-solid fa-copy"></i></button>` : ''}
+                        </div>
+                        <p class="text-[10px] text-blue-400 mt-1">Gana $50 por cada amigo que invites</p>
+                    </div>
+
+                    <div class="text-left mb-6">
+                        <h4 class="font-bold text-sm text-gray-700 mb-2">Mis Cupones 🎟️</h4>
+                        <div class="max-h-32 overflow-y-auto bg-white border border-gray-100 rounded p-2">
+                            ${couponsHtml}
+                        </div>
+                    </div>
+
+                    <button onclick="logout()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 rounded-lg transition mb-2">
+                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                    </button>
+                    <button onclick="toggleAuthModal()" class="text-xs text-gray-400 underline">Cerrar</button>
+                </div>
+            `;
+
+            // Hide tabs
+            const tabsContainer = document.getElementById('auth-tabs-container');
+            if (tabsContainer) tabsContainer.classList.add('hidden');
+            // Hide forms
+            document.getElementById('auth-login-form').classList.add('hidden');
+            document.getElementById('auth-register-form').classList.add('hidden');
+
+            // Inject profile view
+            let profileContainer = document.getElementById('auth-profile-container');
+            if (!profileContainer) {
+                profileContainer = document.createElement('div');
+                profileContainer.id = 'auth-profile-container';
+                document.querySelector('#auth-modal .p-6').appendChild(profileContainer);
+            }
+            profileContainer.innerHTML = modalContent;
+            profileContainer.classList.remove('hidden');
+
+            toggleAuthModal(true);
+        }
+
+        function logout() {
+            if (confirm("¿Cerrar sesión?")) {
+                currentUser = null;
+                localStorage.removeItem('user');
+                updateProfileUI();
+                showToast("Sesión cerrada");
+            }
+        }
+
+        function toggleProfile() {
+            if (currentUser) {
+                showProfileModal();
             } else {
                 toggleAuthModal();
             }
@@ -2156,7 +2361,7 @@
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
 
-            <div class="flex border-b border-gray-100">
+            <div id="auth-tabs-container" class="flex border-b border-gray-100">
                 <button id="tab-login" onclick="switchAuthTab('login')"
                     class="auth-tab flex-1 py-4 text-center text-sm font-bold text-red-600 border-b-2 border-red-600 active hover:bg-gray-50 transition">
                     Iniciar Sesión
@@ -2213,6 +2418,14 @@
                         <input type="password" id="reg-password" required
                             class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-gray-900 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Código de Referido
+                            (Opcional)</label>
+                        <input type="text" id="reg-referral" maxlength="6"
+                            class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-gray-900 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition uppercase placeholder-gray-400"
+                            placeholder="Ej: JAI123">
+                    </div>
+
                     <button type="submit" id="btn-reg-submit"
                         class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-red-500/30 transition transform active:scale-95">
                         Registrarse
