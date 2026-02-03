@@ -148,16 +148,16 @@
                 <div class="flex items-center gap-4">
                     <div class="flex-1">
                         <label class="text-[10px] uppercase text-slate-400 font-bold mb-1 block">Apertura</label>
-                        <input type="number" id="open-hour"
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-white font-mono"
-                            placeholder="16">
+                        <input type="time" id="open-hour"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-white font-mono appearance-none"
+                            value="16:00">
                     </div>
                     <span class="text-slate-500">-</span>
                     <div class="flex-1">
                         <label class="text-[10px] uppercase text-slate-400 font-bold mb-1 block">Cierre</label>
-                        <input type="number" id="close-hour"
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-white font-mono"
-                            placeholder="23">
+                        <input type="time" id="close-hour"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-white font-mono appearance-none"
+                            value="23:00">
                     </div>
                 </div>
                 <button onclick="saveStoreConfig()"
@@ -189,6 +189,7 @@
     <!-- Audio Settings -->
     <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         // --- LOGIC ---
         let orders = [];
@@ -295,6 +296,20 @@
                 const isNew = (Date.now() - new Date(order.createdAt).getTime()) < 60000; // < 1 min old
                 const pulseClass = isNew && order.status === 'pending' ? 'new-order-pulse border-red-500/50' : 'border-slate-800';
 
+                // Coupon HTML
+                let couponHtml = '';
+                if (order.coupon) {
+                    couponHtml = `
+                        <div class="mb-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/40 rounded-lg p-3 flex items-center gap-3 animate-pulse">
+                            <span class="text-2xl">🎁</span>
+                            <div>
+                                <p class="font-bold text-purple-400 text-xs uppercase tracking-wider">Cupón Aplicado</p>
+                                <p class="text-sm text-white font-bold">${order.coupon.description || order.coupon.code}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 return `
                 <div class="bg-slate-800 rounded-2xl p-4 border ${pulseClass} shadow-md relative overflow-hidden transition-all">
                     <!-- Header Card -->
@@ -317,6 +332,7 @@
                     </div>
 
                     <!-- Address -->
+                    ${couponHtml}
                     <div class="bg-slate-900/50 rounded-lg p-3 mb-3 border border-slate-700/50 flex items-start gap-2">
                         <i class="fa-solid fa-location-dot text-red-500 mt-0.5 text-xs"></i>
                         <p class="text-xs text-slate-300 leading-relaxed">${order.customer.address}</p>
@@ -390,16 +406,18 @@
         async function fetchConfig() {
             try {
                 // High Demand
-                const res1 = await fetch('https://menuia.onrender.com/api/config/high-demand');
+                const res1 = await fetch(`${API_URL}/api/config/high-demand`);
                 const data1 = await res1.json();
                 document.getElementById('high-demand-toggle').checked = data1.isHighDemand;
 
                 // Hours
-                const res2 = await fetch('https://menuia.onrender.com/api/config/hours');
+                // Hours
+                const res2 = await fetch(`${API_URL}/api/config/hours`);
                 const data2 = await res2.json();
                 if (data2) {
-                    document.getElementById('open-hour').value = data2.open;
-                    document.getElementById('close-hour').value = data2.close;
+                    // Use raw Time String ("16:00") directly with fallback
+                    document.getElementById('open-hour').value = data2.open || "16:00";
+                    document.getElementById('close-hour').value = data2.close || "23:00";
                     document.getElementById('force-close-toggle').checked = data2.force_close;
                     updateHeaderStatus(data2.force_close);
                 }
@@ -407,12 +425,13 @@
         }
 
         async function saveStoreConfig() {
-            const open = parseInt(document.getElementById('open-hour').value);
-            const close = parseInt(document.getElementById('close-hour').value);
+            // Send raw Time String ("16:30") directly
+            const open = document.getElementById('open-hour').value;
+            const close = document.getElementById('close-hour').value;
             const force_close = document.getElementById('force-close-toggle').checked;
 
             try {
-                await fetch('https://menuia.onrender.com/api/config/hours', {
+                await fetch(`${API_URL}/api/config/hours`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ open, close, force_close })
@@ -425,7 +444,7 @@
         async function toggleHighDemand() {
             const enabled = document.getElementById('high-demand-toggle').checked;
             try {
-                await fetch('https://menuia.onrender.com/api/config/high-demand', {
+                await fetch(`${API_URL}/api/config/high-demand`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled })
@@ -442,6 +461,46 @@
                 indicator.className = "px-2 py-0.5 rounded-full bg-emerald-900/50 border border-emerald-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 transition-colors";
                 indicator.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ONLINE`;
             }
+        }
+
+        // --- REAL-TIME UPDATES ---
+        // const API_URL = 'http://localhost:3000';
+        const API_URL = 'https://menuia.onrender.com';
+        const socket = io(API_URL);
+
+        socket.on('connect', () => {
+            console.log("🟢 Connected to Socket.IO");
+        });
+
+        socket.on('new-order', (order) => {
+            console.log("🔔 New Order:", order);
+            playNotification();
+            showToast("¡Nuevo Pedido Recibido!");
+            fetchOrders(); // Refresh list immediately
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        });
+
+        socket.on('order-status-changed', (order) => {
+            console.log("🔄 Status Update:", order);
+            fetchOrders();
+        });
+
+        socket.on('config-updated', (config) => {
+            console.log("⚙️ Config Sync:", config);
+            if (config.force_close !== undefined) updateHeaderStatus(config.force_close);
+
+            document.getElementById('open-hour').value = config.open || "16:00";
+            document.getElementById('close-hour').value = config.close || "23:00";
+            document.getElementById('force-close-toggle').checked = config.force_close;
+        });
+
+        function showToast(msg) {
+            // Simple toast implementation if not exists, or reuse existing
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-full shadow-lg z-50 animate-bounce';
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         // Init
