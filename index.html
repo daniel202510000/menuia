@@ -1894,7 +1894,31 @@
 
         function checkStoreStatus() {
             const statusBanner = document.getElementById('status-banner');
-            if (!isStoreOpen()) { statusBanner.classList.remove('free-shipping-banner'); statusBanner.style.backgroundColor = '#ef4444'; statusBanner.style.animation = 'none'; statusBanner.innerHTML = `<i class="fa-solid fa-lock"></i> CERRADO - Horario: 4:00 PM a 11:00 PM`; const heroBadge = document.getElementById('hero-badge'); if (heroBadge) { heroBadge.className = "inline-block bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow mb-4"; heroBadge.innerHTML = `<i class="fa-solid fa-clock"></i> Restaurante Cerrado`; } }
+            const heroBadge = document.getElementById('hero-badge');
+
+            if (!isStoreOpen()) {
+                // CLOSED STATE
+                statusBanner.classList.remove('free-shipping-banner');
+                statusBanner.style.backgroundColor = '#ef4444';
+                statusBanner.style.animation = 'none';
+                statusBanner.innerHTML = `<i class="fa-solid fa-lock"></i> CERRADO - Horario: ${openHour} a ${closeHour}`;
+
+                if (heroBadge) {
+                    heroBadge.className = "inline-block bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow mb-4";
+                    heroBadge.innerHTML = `<i class="fa-solid fa-clock"></i> Restaurante Cerrado`;
+                }
+            } else {
+                // OPEN STATE (Reset to default)
+                statusBanner.classList.add('free-shipping-banner');
+                statusBanner.style.backgroundColor = ''; // Reset inline style
+                statusBanner.style.animation = '';
+                statusBanner.innerHTML = `<i class="fa-solid fa-truck-fast"></i> ¡Envío GRATIS en pedidos mayores a $${SHIPPING_FREE_THRESHOLD}!`;
+
+                if (heroBadge) {
+                    heroBadge.className = "inline-block bg-green-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow mb-4";
+                    heroBadge.innerHTML = `<i class="fa-solid fa-clock"></i> Abierto Ahora`;
+                }
+            }
         }
 
         async function checkHighDemand() {
@@ -2100,12 +2124,18 @@
                     <p class="text-sm text-gray-500 mb-4 font-mono">${currentUser.phone}</p>
                     
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
-                        <p class="text-[10px] text-blue-600 font-bold uppercase mb-1">Tu Código de Referido</p>
-                        <div class="flex items-center justify-center gap-2">
-                             <span class="font-mono text-xl font-bold text-gray-800 tracking-widest bg-white px-2 rounded border border-blue-100">${currentUser.referralCode || '<i class="fa-solid fa-spinner fa-spin text-sm"></i>'}</span>
-                             ${currentUser.referralCode ? `<button onclick="navigator.clipboard.writeText('${currentUser.referralCode}'); showToast('Código copiado');" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs transition"><i class="fa-solid fa-copy"></i></button>` : ''}
+                        <p class="text-[10px] text-blue-600 font-bold uppercase mb-1">Tu Link de Referido</p>
+                        <div class="flex items-center justify-center gap-2 mb-2">
+                             <div class="bg-white px-2 py-1 rounded border border-blue-100 text-xs text-gray-500 font-mono truncate max-w-[180px]">
+                                sosushi.shop/?ref=${currentUser.referralCode || '...'}
+                             </div>
+                             ${currentUser.referralCode ? `
+                                <button onclick="shareReferralLink('${currentUser.referralCode}')" class="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-xs transition font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-share-nodes"></i> Compartir
+                                </button>
+                             ` : ''}
                         </div>
-                        <p class="text-[10px] text-blue-400 mt-1">Gana $50 por cada amigo que invites</p>
+                        <p class="text-[10px] text-blue-400 mt-1">Gana $50 por cada amigo que se registre</p>
                     </div>
 
                     <div class="text-left mb-6">
@@ -2178,11 +2208,54 @@
             }
         }
 
+        async function shareReferralLink(code) {
+            const url = `https://sosushi.shop/?ref=${code}`;
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '¡Te regalo $50 en So Sushi! 🍣',
+                        text: 'Regístrate con mi enlace y obtén $50 de descuento en tu primer pedido:',
+                        url: url
+                    });
+                } catch (err) { console.log('Error compartiendo:', err); }
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast('Link copiado al portapapeles 📋');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             checkHighDemand();
             loadMenu();
             checkStoreStatus();
             updateCartUI();
+
+            // Check for Deep Link Referral
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+
+            if (refCode) {
+                console.log("🔗 Deep Link Detected:", refCode);
+
+                // FORCE OPEN for debugging/testing purposes (even if logged in, just to verify it works)
+                // In production, we might want to keep the !currentUser check, 
+                // but for now, let's show visual feedback regardless.
+
+                setTimeout(() => {
+                    if (currentUser) {
+                        showToast(`ℹ️ Enlace de referido detectado (${refCode}), pero ya tienes sesión.`);
+                    } else {
+                        showToast(`🎉 Código de amigo detectado: ${refCode}`);
+                        toggleAuthModal();
+                        switchAuthTab('register');
+                        const refInput = document.getElementById('reg-referral');
+                        if (refInput) {
+                            refInput.value = refCode;
+                            refInput.classList.add('bg-yellow-50', 'border-yellow-300'); // Highlight
+                        }
+                    }
+                }, 1000); // Increased timeout to ensure loaded
+            }
 
             // Reemplazar llamada directa por chequeo de modal
             // calculateShipping(false); 
